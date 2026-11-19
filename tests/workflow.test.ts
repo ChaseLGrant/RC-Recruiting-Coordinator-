@@ -1,3 +1,4 @@
+// Runs on in-memory SQLite by default. Set PG_TEST_URL=postgresql://... to run the same suite against Postgres.
 import { beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Db } from "@/lib/db";
 import { createDemoWorkspace, createProgram } from "@/lib/onboarding";
@@ -15,7 +16,7 @@ let demo: { orgId: string; userId: string };
 let ctx: Ctx;
 
 beforeAll(async () => {
-  db = await createDb({ sqlitePath: ":memory:", url: "" });
+  db = await createDb(process.env.PG_TEST_URL ? { url: process.env.PG_TEST_URL } : { sqlitePath: ":memory:", url: "" });
   demo = await createDemoWorkspace(db, "coach@demo.test", "password123");
   ctx = { db, orgId: demo.orgId, userId: demo.userId, role: "head_coach" };
 });

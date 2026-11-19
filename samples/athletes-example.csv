@@ -1,0 +1,2 @@
+first_name,last_name,grad_year,primary_position,secondary_position,high_school,city,state,zip,height,weight_lb,exit_velo_mph,sixty_yd_sec,inf_velo_mph,measured_at,verification,event_name,source_url,film_url,email,commitment_status,commitment_verified
+Sample,Athlete,2027,SS,2B,Example High School,Austin,TX,78745,"5'11""",178,91.4,6.85,86,2026-07-12,independently_verified,Our 2026 Summer Camp,,https://example.com/film/sample,sample.athlete@example.com,uncommitted,true

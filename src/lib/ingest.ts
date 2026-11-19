@@ -227,15 +227,6 @@ async function ingestMetrics(db: Db, orgId: string, source: Source, athleteId: s
     if (after?.conflict && !before?.conflict) {
       stats.conflicts++;
       await logEvent(db, orgId, { type: "conflict_detected", message: `${athleteName}: sources disagree on ${def.label.toLowerCase()}`, athleteId, sourceId: source.id, runId });
-      await createApproval(db, orgId, {
-        kind: "data_conflict",
-        title: `Conflicting ${def.label.toLowerCase()}: ${athleteName}`,
-        summary: `${after.conflictDetail}. RC shows every value with its source and date rather than choosing one. Approve to acknowledge.`,
-        payload: { type: "metric_conflict", metricKey: m.key, observations: after.observations.map((o) => ({ value: o.value, source: o.sourceName, measuredAt: o.measuredAt, verification: o.verification })) },
-        dedupeKey: `conflict:${athleteId}:${m.key}`,
-        athleteId,
-        runId,
-      });
     }
   }
 }

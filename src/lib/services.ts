@@ -37,11 +37,7 @@ export async function searchAthletes(db: Db, orgId: string, criteria: Recruiting
   for (const o of obs) byAthlete.set(o.athleteId, [...(byAthlete.get(o.athleteId) ?? []), o]);
   const film = await db.all<{ athlete_id: string; n: number }>("SELECT athlete_id, COUNT(*) AS n FROM film_links WHERE org_id = ? GROUP BY athlete_id", [orgId]);
   const filmBy = new Map(film.map((f) => [f.athlete_id, Number(f.n)]));
-  const games = await db.all<{ athlete_id: string; starts_at: string; opponent: string | null }>(
-    "SELECT athlete_id, MIN(starts_at) AS starts_at, opponent FROM games WHERE org_id = ? AND starts_at > ? AND status != 'cancelled' GROUP BY athlete_id",
-    [orgId, new Date().toISOString()],
-  );
-  const gameBy = new Map(games.map((g) => [g.athlete_id, g]));
+  const gameBy = await nextGames(db, orgId);
   const followed = await followedIds(db, orgId);
 
   const rows: SearchRow[] = athletes.map((a) => ({
@@ -125,4 +121,16 @@ export async function buildBrief(db: Db, orgId: string, lastBriefAt: string | nu
     failedRuns: recentRuns.filter((r) => r.status === "failed" && r.started_at > since),
     tasks,
   };
+}
+
+/** Next upcoming (non-cancelled) game per athlete. Portable across SQLite and Postgres. */
+export async function nextGames(db: Db, orgId: string, athleteIds?: string[]) {
+  if (athleteIds && athleteIds.length === 0) return new Map<string, { athlete_id: string; starts_at: string; opponent: string | null }>();
+  const rows = await db.all<{ athlete_id: string; starts_at: string; opponent: string | null }>(
+    `SELECT athlete_id, starts_at, opponent FROM games WHERE org_id = ? AND starts_at > ? AND status != 'cancelled'${athleteIds ? ` AND athlete_id IN (${athleteIds.map(() => "?").join(",")})` : ""} ORDER BY starts_at`,
+    [orgId, new Date().toISOString(), ...(athleteIds ?? [])],
+  );
+  const out = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) if (!out.has(r.athlete_id)) out.set(r.athlete_id, r);
+  return out;
 }

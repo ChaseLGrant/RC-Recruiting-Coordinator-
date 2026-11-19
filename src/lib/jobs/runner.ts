@@ -10,6 +10,7 @@
 import { Db, newId, nowIso } from "../db";
 import { evaluateAthlete } from "../domain/criteria";
 import { metricDef } from "../domain/metrics";
+import { resolveAll } from "../domain/provenance";
 import { getProvider } from "../providers/registry";
 import {
   followedIds,
@@ -151,6 +152,26 @@ async function executeMission(db: Db, orgId: string, mission: Mission, runId: st
         summary: `${m.summary}.${m.distanceMi != null ? ` ${Math.round(m.distanceMi)} mi from ${c.location.center?.label}.` : ""}${gaps.length ? ` Not yet confirmed: ${gaps.join("; ")}.` : ""} Approve to add to Following.`,
         payload: { missionId: mission.id, match: m },
         dedupeKey: `prospect:${mission.id}:${a.id}`,
+        athleteId: a.id,
+        runId,
+      });
+    }
+  }
+
+  // Data conflicts — only queued for coach review when they concern athletes
+  // the coach cares about (followed, or meeting this mission's standards).
+  // All conflicts remain visible in Evidence Mode regardless.
+  for (const a of athletes) {
+    if (!eligibleIds.includes(a.id) && !followed.has(a.id)) continue;
+    for (const r of resolveAll(byAthlete.get(a.id) ?? []).values()) {
+      if (!r.conflict) continue;
+      const def = metricDef(r.key);
+      await createApproval(db, orgId, {
+        kind: "data_conflict",
+        title: `Conflicting ${def.label.toLowerCase()}: ${a.firstName} ${a.lastName}`,
+        summary: `${r.conflictDetail}. RC shows every value with its source and date rather than choosing one. Approve to acknowledge.`,
+        payload: { type: "metric_conflict", metricKey: r.key, observations: r.observations.map((o) => ({ value: o.value, source: o.sourceName, measuredAt: o.measuredAt, verification: o.verification })) },
+        dedupeKey: `conflict:${a.id}:${r.key}`,
         athleteId: a.id,
         runId,
       });

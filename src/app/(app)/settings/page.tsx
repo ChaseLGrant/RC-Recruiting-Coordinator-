@@ -1,0 +1,132 @@
+import { requireSession } from "@/lib/session";
+import { listAudit, listSources, listUsers } from "@/lib/repo";
+import { PROVIDERS } from "@/lib/providers/registry";
+import { ATHLETE_CSV_COLUMNS, SCHEDULE_CSV_COLUMNS } from "@/lib/providers/csv";
+import { getEmailProvider } from "@/lib/providers/email";
+import { getAiProvider } from "@/lib/ai/provider";
+import { can } from "@/lib/domain/permissions";
+import { ROLE_LABEL, type Role } from "@/lib/domain/types";
+import { importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
+  const { ctx, user, org } = await requireSession();
+  const sp = await searchParams;
+  const sources = await listSources(ctx.db, ctx.orgId);
+  const users = await listUsers(ctx.db, ctx.orgId);
+  const audit = can(user.role, "view_audit") ? await listAudit(ctx, 60) : [];
+  const comp = org.settings.compliance;
+  const yr = new Date().getFullYear();
+  const email = getEmailProvider();
+  const ai = getAiProvider();
+  const canSettings = can(user.role, "manage_settings");
+
+  return (
+    <div className="space-y-6">
+      <Flash flash={sp.flash} error={sp.error} />
+      <PageHeader title="Settings" />
+
+      <Card title="Program">
+        <form action={updateProgramAction} className="grid gap-3 md:grid-cols-3">
+          <div><Label>Program name</Label><Input name="name" defaultValue={org.name} /></div>
+          <div><Label>Campus location (ZIP or City, ST) — used for radius searches</Label><Input name="campus" defaultValue={org.campus?.label.replace(/^Campus \(|\)$/g, "") ?? ""} required /></div>
+          <div className="flex items-end"><Button disabled={!canSettings}>Save</Button></div>
+        </form>
+        {org.campus && <p className="mt-2 text-xs text-slate-500">Geocoded to {org.campus.lat.toFixed(4)}, {org.campus.lng.toFixed(4)} (US ZIP centroid data, offline).</p>}
+      </Card>
+
+      <Card title="Data sources" id="sources" action={<form action={syncSourcesAction}><Button variant="secondary" className="text-xs">Check connected sources now</Button></form>}>
+        <p className="mb-3 text-sm text-slate-600">RC uses only authorized data. It never scrapes websites and never claims to have searched a source it cannot access.</p>
+        <table className="mb-5 min-w-full text-sm">
+          <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Source</th><th>Type</th><th>Status</th><th>Details</th><th>Last checked</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {sources.map((s) => (
+              <tr key={s.id}>
+                <td className="py-1.5 font-medium">{s.name}</td>
+                <td className="text-xs">{s.kind.replace("_", " ")}</td>
+                <td><Badge tone={s.status === "connected" ? "green" : s.status === "error" ? "red" : s.status === "import_only" ? "blue" : "slate"}>{s.status.replace("_", " ")}</Badge></td>
+                <td className="max-w-md text-xs text-slate-600">{s.statusDetail}</td>
+                <td className="text-xs text-slate-500">{timeAgo(s.lastCheckedAt ?? s.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="grid gap-4 md:grid-cols-2">
+          <form action={importCsvAction} className="space-y-2 rounded-lg border border-slate-200 p-3">
+            <div className="text-sm font-semibold">Import a CSV</div>
+            <div className="flex gap-3 text-sm">
+              <label className="flex items-center gap-1"><input type="radio" name="kind" value="athletes" defaultChecked /> Athletes & measurements</label>
+              <label className="flex items-center gap-1"><input type="radio" name="kind" value="schedule" /> Game schedules</label>
+            </div>
+            <div><Label>Source name (shown next to every value)</Label><Input name="sourceName" placeholder="e.g. 2026 Summer Camp results" /></div>
+            <Input name="file" type="file" accept=".csv,text/csv" required />
+            <label className="flex items-start gap-2 text-xs text-slate-700"><input type="checkbox" name="attest" value="1" className="mt-0.5" /> I confirm our program is authorized to use this data (our own evaluations, our camp results, or a licensed export) and that verification labels in the file are accurate.</label>
+            <Button disabled={!can(user.role, "import_data")}>Import</Button>
+          </form>
+          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="mb-1 font-semibold text-slate-800">CSV columns</div>
+            <p><b>Athletes:</b> {ATHLETE_CSV_COLUMNS.join(", ")}.</p>
+            <p className="mt-1">Required: first_name, last_name. <code>verification</code> is one of independently_verified, official, self_reported, unverified (default unverified). <code>height</code> accepts 5&apos;10&quot;.</p>
+            <p className="mt-2"><b>Schedules:</b> {SCHEDULE_CSV_COLUMNS.join(", ")}. Rows are matched to athletes already in RC.</p>
+          </div>
+        </div>
+        <div className="mt-4 text-xs text-slate-500">
+          Available providers: {PROVIDERS.map((p) => `${p.name} (${p.status(process.env, org).status.replace("_", " ")})`).join(" · ")}.{" "}
+          AI search assist: {ai ? `${ai.name} connected (used only to read your search request)` : "not configured — RC uses its built-in rule-based parser"}.
+        </div>
+      </Card>
+
+      <Card title="Compliance" id="compliance">
+        <form action={updateComplianceAction} className="space-y-3 text-sm">
+          <p className="text-slate-600">RC does not hard-code NCAA rules. Your compliance office sets them here. Until they do, every outreach draft goes to compliance review.</p>
+          <label className="flex items-center gap-2"><input type="checkbox" name="configured" value="1" defaultChecked={comp.configured} /> These settings have been reviewed by our compliance office</label>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div><Label>Division / association</Label><Input name="division" defaultValue={comp.division ?? ""} placeholder="NCAA Division I" /></div>
+            {[yr, yr + 1, yr + 2, yr + 3].map((y) => (
+              <div key={y}><Label>Class of {y}: first permitted contact date</Label><Input name={`firstContact_${y}`} type="date" defaultValue={comp.firstContactDateByGradYear[String(y)] ?? ""} /></div>
+            ))}
+          </div>
+          <div><Label>Recruiting calendar (one per line: start, end, type [contact|evaluation|quiet|dead], note)</Label>
+            <textarea name="calendar" rows={4} className="w-full rounded-lg border border-slate-300 p-2 font-mono text-xs" defaultValue={comp.calendar.map((p) => [p.start, p.end, p.type, p.note ?? ""].join(", ")).join("\n")} placeholder="2026-12-20, 2027-01-03, dead, Winter dead period" />
+          </div>
+          <label className="flex items-center gap-2"><input type="checkbox" name="requireGuardianConsent" value="1" defaultChecked={comp.requireGuardianConsentForMinors} /> Require recorded parent/guardian consent before messaging athletes under 18 (or of unknown age)</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="campMaterialsAllowed" value="1" defaultChecked={comp.campMaterialsAllowedBeforeContactDate} /> Camp invitations may go out before the permitted contact date (per our compliance office)</label>
+          <Button disabled={!canSettings}>Save compliance settings</Button>
+        </form>
+      </Card>
+
+      <Card title="Outreach" id="outreach">
+        <form action={updateOutreachSettingsAction} className="space-y-3 text-sm">
+          <div><Label>Program name used in messages</Label><Input name="programDisplayName" defaultValue={org.settings.programDisplayName ?? org.name} /></div>
+          <label className="flex items-center gap-2"><input type="checkbox" name="emailSendingEnabled" value="1" defaultChecked={org.settings.emailSendingEnabled} /> Allow coaches to send approved messages from RC</label>
+          <p className="text-xs text-slate-500">Email provider: {email ? `${email.name} connected` : "none connected (set RESEND_API_KEY and RC_EMAIL_FROM). Approved messages can be opened in your own email client."} Even when enabled, RC never sends automatically — every send is a coach&apos;s click after approval and compliance checks.</p>
+          <Button disabled={!canSettings}>Save</Button>
+        </form>
+      </Card>
+
+      <Card title="Recruiting staff & roles" id="team">
+        <ul className="mb-4 divide-y divide-slate-100 text-sm">
+          {users.map((u) => <li key={u.id} className="flex justify-between py-1.5"><span>{u.name} <span className="text-slate-500">· {u.email}</span></span><Badge>{ROLE_LABEL[u.role]}</Badge></li>)}
+        </ul>
+        {can(user.role, "manage_users") && (
+          <form action={inviteUserAction} className="grid gap-2 md:grid-cols-6">
+            <Input name="name" placeholder="Name" required />
+            <Input name="email" type="email" placeholder="Email" required />
+            <Input name="title" placeholder="Title" />
+            <Select name="role" defaultValue="assistant_coach">{(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</Select>
+            <Input name="password" type="password" placeholder="Temporary password" minLength={8} required />
+            <Button>Add staff</Button>
+          </form>
+        )}
+      </Card>
+
+      {audit.length > 0 && (
+        <Card title="Audit log">
+          <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto text-xs">
+            {audit.map((a) => <li key={a.id} className="flex gap-3 py-1"><span className="w-36 shrink-0 text-slate-500">{fmtDateTime(a.created_at)}</span><span className="w-32 shrink-0">{a.user_name ?? "RC (system)"}</span><span>{a.action.replace(/_/g, " ")} · {a.entity}</span></li>)}
+          </ul>
+        </Card>
+      )}
+    </div>
+  );
+}

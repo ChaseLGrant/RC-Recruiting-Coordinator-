@@ -82,7 +82,7 @@ export async function createApproval(
 export async function listApprovals(db: Db, orgId: string, statuses: ApprovalStatus[] = ["pending"], limit = 200): Promise<Approval[]> {
   return (
     await db.all(
-      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT ?`,
+      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, CASE kind WHEN 'compliance' THEN 0 WHEN 'prospect' THEN 1 WHEN 'camp_list' THEN 2 WHEN 'outreach' THEN 3 WHEN 'board_change' THEN 4 WHEN 'itinerary' THEN 5 ELSE 6 END, created_at DESC LIMIT ?`,
       [orgId, ...statuses, limit],
     )
   ).map(approvalFromRow);
@@ -278,7 +278,7 @@ export async function approveMessage(ctx: Ctx, messageId: string): Promise<strin
     await ctx.db.run("UPDATE messages SET status = 'compliance_review', status_reason = ?, updated_at = ? WHERE id = ?", [elig.reasons.join("; "), now, messageId]);
     await createApproval(ctx.db, ctx.orgId, {
       kind: "compliance",
-      title: `Compliance review: ${msg.subject}`,
+      title: `Compliance review: ${labelForKind(msg.kind)} to ${athlete.firstName} ${athlete.lastName}`,
       summary: elig.reasons.join("; "),
       payload: { messageId, reasons: elig.reasons },
       dedupeKey: `compliance:${messageId}`,
