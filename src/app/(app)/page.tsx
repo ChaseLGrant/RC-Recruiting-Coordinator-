@@ -4,6 +4,7 @@ import { buildBrief } from "@/lib/services";
 import { listMessages } from "@/lib/repo/approvals";
 import { listProfiles } from "@/lib/repo";
 import { can } from "@/lib/domain/permissions";
+import { listCandidates } from "@/lib/finder/finder";
 import { completeTaskAction, markBriefReviewedAction } from "@/app/actions";
 import { ApprovalCard } from "@/components/approval-card";
 import { SearchBox } from "@/components/search-box";
@@ -16,6 +17,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const brief = await buildBrief(ctx.db, ctx.orgId, user.lastBriefAt);
   const messages = new Map((await listMessages(ctx.db, ctx.orgId)).map((m) => [m.id, m]));
+  const candIds = brief.pendingApprovals.filter((x) => x.kind === "links_found").flatMap((x) => (x.payload.candidateIds as string[]) ?? []);
+  const cands = await listCandidates(ctx.db, ctx.orgId, { ids: candIds });
   const profiles = await listProfiles(ctx.db, ctx.orgId);
   const weekAhead = new Date(Date.now() + 7 * 86_400_000).toISOString();
   const gamesThisWeek = await ctx.db.get<{ n: number }>(
@@ -49,6 +52,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <Link key={e} href={`/discover?q=${encodeURIComponent(e)}`} className="border border-white/20 px-3 py-1.5 text-xs text-white/80 hover:border-white/60 hover:text-white">{e}</Link>
             ))}
           </div>
+          <p className="mt-4 text-xs text-white/60">Saw someone you like? <Link href="/players/new" className="font-semibold text-white underline decoration-white/30 underline-offset-4">Add a player</Link> · Have a list? <Link href="/import" className="font-semibold text-white underline decoration-white/30 underline-offset-4">Import it</Link></p>
           {profiles.length > 0 && (
             <p className="mt-4 text-xs text-white/60">
               Saved searches:{" "}
@@ -82,7 +86,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           ) : (
             <div className="space-y-3">
               {queue.slice(0, 4).map((a) => (
-                <ApprovalCard key={a.id} a={a} message={a.payload.messageId ? messages.get(String(a.payload.messageId)) : undefined} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} />
+                <ApprovalCard key={a.id} a={a} message={a.payload.messageId ? messages.get(String(a.payload.messageId)) : undefined} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} candidates={a.kind === "links_found" ? cands.filter((c) => ((a.payload.candidateIds as string[]) ?? []).includes(c.id)) : undefined} />
               ))}
             </div>
           )}

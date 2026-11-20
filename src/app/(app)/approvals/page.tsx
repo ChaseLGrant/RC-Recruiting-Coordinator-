@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/session";
 import { listApprovals, listMessages, APPROVAL_KIND_LABEL, type ApprovalKind } from "@/lib/repo/approvals";
 import { can } from "@/lib/domain/permissions";
+import { listCandidates } from "@/lib/finder/finder";
 import { ApprovalCard } from "@/components/approval-card";
 import { Badge, Empty, Flash, PageHeader, timeAgo } from "@/components/ui";
 import Link from "next/link";
@@ -12,6 +13,8 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
   const all = await listApprovals(ctx.db, ctx.orgId, decided ? ["approved", "rejected"] : ["pending", "saved"]);
   const items = sp.kind ? all.filter((a) => a.kind === sp.kind) : all;
   const messages = new Map((await listMessages(ctx.db, ctx.orgId)).map((m) => [m.id, m]));
+  const candIds = items.filter((x) => x.kind === "links_found").flatMap((x) => (x.payload.candidateIds as string[]) ?? []);
+  const cands = await listCandidates(ctx.db, ctx.orgId, { ids: candIds });
   const kinds = Array.from(new Set(all.map((a) => a.kind)));
   const returnTo = `/approvals${sp.kind ? `?kind=${sp.kind}` : ""}`;
   return (
@@ -40,7 +43,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {items.map((a) => (
-            <ApprovalCard key={a.id} a={a} returnTo={returnTo} message={a.payload.messageId ? messages.get(String(a.payload.messageId)) : undefined} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} />
+            <ApprovalCard key={a.id} a={a} returnTo={returnTo} message={a.payload.messageId ? messages.get(String(a.payload.messageId)) : undefined} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} candidates={a.kind === "links_found" ? cands.filter((c) => ((a.payload.candidateIds as string[]) ?? []).includes(c.id)) : undefined} />
           ))}
         </div>
       )}

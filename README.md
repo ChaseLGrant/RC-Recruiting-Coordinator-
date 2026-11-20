@@ -77,6 +77,19 @@ npm run demo:create -- demos/palomar.json
 
 The demo is built from the program's campus, colors and staff, with fictional players from real nearby towns. Drop the official logo at `demos/palomar-logo.png` (or .svg/.jpg/.webp) before running, or upload it later in Settings → Branding.
 
+## Player page finder & adding players by hand
+
+- **Finds each player's pages automatically.** For every player RC matches, imports, or a coach adds, it uses an official search API (Google Programmable Search or Brave Search) to look for his MaxPreps, Perfect Game and PBR stat pages, Hudl and YouTube film, and X and Instagram accounts.
+  - Each result is scored against what RC knows. The name alone isn't enough: class, school or hometown must also match.
+  - Coaches **keep or dismiss** each link. Kept stat pages update stats and schedules automatically. Socials and film become one-tap buttons on the player's page.
+  - Dismissed links are never suggested again. Opted-out players are never searched.
+  - It searches a small batch each hour (`RC_FINDER_PER_RUN`, default 8 per program) to stay within free search limits.
+  - **Setup:** add `GOOGLE_CSE_KEY` + `GOOGLE_CSE_ID`, or `BRAVE_SEARCH_API_KEY`. Until then, Settings shows "Not connected" and nothing is searched.
+- **Add a player** (the "+" in the header, on every screen): a quick form built for a phone. Only the name is required, and the player goes straight onto the board.
+  - Optional: what you saw (height, weight, exit velo, 60 time, FB velo, all labeled "Seen by <coach>"), where you saw him (logged as "Saw him play"), phone, X handle, links, a staff note and a board status.
+  - RC then searches for his pages to approve.
+- **Not tested against the live search services or real MaxPreps/Perfect Game pages yet** (the development environment can't reach them). The request formats are covered by tests with simulated responses. Watch the first real searches.
+
 ## Trust & safety guarantees (each one is enforced by a test in `tests/trust.test.ts` or `tests/workflow.test.ts`)
 
 - **No fabricated data.** Real programs start empty. Fictional demo data can't be loaded into a real program.

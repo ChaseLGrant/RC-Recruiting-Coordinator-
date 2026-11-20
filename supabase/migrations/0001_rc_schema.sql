@@ -363,6 +363,35 @@ CREATE TABLE IF NOT EXISTS contacts (
 
 CREATE INDEX IF NOT EXISTS idx_contacts_athlete ON contacts(org_id, athlete_id, occurred_at);
 
+CREATE TABLE IF NOT EXISTS link_candidates (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL REFERENCES athletes(id),
+    url TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    site TEXT NOT NULL,
+    title TEXT,
+    snippet TEXT,
+    score REAL NOT NULL,
+    reasons TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    decided_by TEXT,
+    found_at TEXT NOT NULL,
+    UNIQUE (org_id, athlete_id, url)
+  );
+
+CREATE TABLE IF NOT EXISTS athlete_links (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL REFERENCES athletes(id),
+    url TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    site TEXT NOT NULL,
+    added_by TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE (org_id, athlete_id, url)
+  );
+
 CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
@@ -397,4 +426,6 @@ ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tracked_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pending_imports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE link_candidates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE athlete_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

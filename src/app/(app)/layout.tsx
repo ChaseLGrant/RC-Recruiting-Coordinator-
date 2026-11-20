@@ -38,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex-1" />
           <NavLinks pending={pending} />
+          <Link href="/players/new" aria-label="Add a player" title="Add a player" className="grid h-9 w-9 place-items-center bg-[var(--team-primary)] text-xl font-bold leading-none hover:brightness-110">+</Link>
           <details className="relative">
             <summary className="grid h-9 w-9 place-items-center border border-white/25 text-xs font-bold tracking-wider hover:bg-white/10" aria-label="Account menu">{initials}</summary>
             <div className="absolute right-0 z-50 mt-2 w-64 border border-slate-200 bg-white text-sm text-slate-800 shadow-xl">

@@ -46,7 +46,8 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
           <p className="mt-1 text-[15px] text-slate-500">RC watches these players for new numbers and schedule changes and tells you on Home.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <LinkButton href="/import" variant="primary">Import your list</LinkButton>
+          <LinkButton href="/players/new" variant="primary">+ Add a player</LinkButton>
+          <LinkButton href="/import">Import your list</LinkButton>
           {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
         </div>
       </div>

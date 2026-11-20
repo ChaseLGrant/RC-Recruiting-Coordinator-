@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { decideApprovalAction } from "@/app/actions";
 import type { Approval, MessageRow } from "@/lib/repo/approvals";
+import type { CandidateRow } from "@/lib/finder/finder";
 import { timeAgo } from "./ui";
 
 // Plain-language labels and buttons per item type, so a coach can decide in one tap.
@@ -13,9 +14,10 @@ const COPY: Record<Approval["kind"], { label: string; dot: string; yes: string; 
   data_conflict: { label: "Numbers don't match", dot: "bg-amber-500", yes: "Got it", no: "Dismiss" },
   compliance: { label: "Compliance check", dot: "bg-rose-500", yes: "Clear to send", no: "Hold" },
   contact_found: { label: "Contact info found", dot: "bg-sky-500", yes: "Save to profile", no: "Don't save" },
+  links_found: { label: "Player pages found", dot: "bg-sky-500", yes: "Keep checked", no: "None are him" },
 };
 
-export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideCompliance }: { a: Approval; message?: MessageRow; returnTo?: string; canDecide: boolean; canDecideCompliance: boolean }) {
+export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideCompliance, candidates }: { a: Approval; message?: MessageRow; returnTo?: string; canDecide: boolean; canDecideCompliance: boolean; candidates?: CandidateRow[] }) {
   const allowed = a.kind === "compliance" ? canDecideCompliance : canDecide;
   const c = COPY[a.kind];
   const dup = a.kind === "data_conflict" && a.payload.type === "possible_duplicate";
@@ -35,6 +37,27 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
         <form action={decideApprovalAction} className="mt-3">
           <input type="hidden" name="approvalId" value={a.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
+          {a.kind === "links_found" && (
+            <>
+              <input type="hidden" name="linksForm" value="1" />
+              <ul className="mb-3 divide-y divide-slate-100 border border-slate-200">
+                {(candidates ?? []).filter((c) => c.status === "pending").map((c) => (
+                  <li key={c.id} className="flex items-start gap-3 p-3">
+                    <input type="checkbox" name="accept" value={c.id} defaultChecked className="mt-1 h-5 w-5 shrink-0 accent-[var(--team-primary)]" aria-label={`Keep ${c.site} link`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="eyebrow text-slate-700">{c.site}</span>
+                        <span className="text-[11px] text-slate-400">{c.kind === "stats" ? "Stats & schedule" : c.kind === "film" ? "Film" : "Social"}</span>
+                      </div>
+                      <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-700 underline">{c.title || c.url}</a>
+                      <p className="text-xs text-slate-500">Matched: {c.reasons}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mb-3 text-xs text-slate-500">Uncheck anything that isn&apos;t this player. Open a link to check it before you decide.</p>
+            </>
+          )}
           {message && (
             <details className="mb-3 rounded-[4px] bg-slate-50 p-3">
               <summary className="text-sm font-medium text-brand-700">Read or edit the message to {message.to_email ?? "(no email on file)"}</summary>

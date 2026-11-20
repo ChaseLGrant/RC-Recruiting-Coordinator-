@@ -5,6 +5,7 @@ import { ATHLETE_CSV_COLUMNS, SCHEDULE_CSV_COLUMNS } from "@/lib/providers/csv";
 import { getEmailProvider } from "@/lib/providers/email";
 import { getAiProvider } from "@/lib/ai/provider";
 import { listTrackedPages } from "@/lib/watch/runner";
+import { getSearchProvider } from "@/lib/finder/search";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
 import { setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
@@ -15,6 +16,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const sources = await listSources(ctx.db, ctx.orgId);
   const tracked = await listTrackedPages(ctx.db, ctx.orgId);
+  const finder = getSearchProvider();
   const users = await listUsers(ctx.db, ctx.orgId);
   const sharedLogin = await ctx.db.get<{ email: string }>("SELECT email FROM users WHERE org_id = ? AND is_shared = 1", [ctx.orgId]);
   const audit = can(user.role, "view_audit") ? await listAudit(ctx, 60) : [];
@@ -100,6 +102,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           Available providers: {PROVIDERS.map((p) => `${p.name} (${p.status(process.env, org).status.replace("_", " ")})`).join(" · ")}.{" "}
           AI search assist: {ai ? `${ai.name} connected (used only to read your search request)` : "not configured — RC uses its built-in rule-based parser"}.
         </div>
+      </Card>
+
+      <Card title="Player page finder" id="finder">
+        <p className="mb-3 text-sm text-slate-600">For every player RC finds, adds, or imports, it searches the public web for his stat pages (MaxPreps, Perfect Game, PBR), film (Hudl, YouTube), and socials (X, Instagram). You approve or dismiss each link. Approved stat pages update automatically. Dismissed links are never suggested again.</p>
+        {finder ? (
+          <p className="text-sm"><Badge tone="green">Connected</Badge> <span className="ml-1">Using {finder.name}. RC searches up to {process.env.RC_FINDER_PER_RUN ?? 8} players per program each hour, starting with new matches and your board.</span></p>
+        ) : (
+          <div className="border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-950">
+            <b>Not connected yet.</b> Add one free search service in your hosting settings (Vercel → Settings → Environment Variables), then redeploy:
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li><b>Google Programmable Search</b> (100 free searches a day): create a search engine at programmablesearchengine.google.com set to &ldquo;Search the entire web&rdquo;, then add <code>GOOGLE_CSE_ID</code> and an API key as <code>GOOGLE_CSE_KEY</code>.</li>
+              <li><b>or Brave Search API</b> (free tier): add <code>BRAVE_SEARCH_API_KEY</code>.</li>
+            </ul>
+          </div>
+        )}
       </Card>
 
       <Card title="Season stat tracking" id="stat-tracking" action={<form action={checkPagesNowAction}><Button variant="secondary" className="text-xs">Check all now</Button></form>}>

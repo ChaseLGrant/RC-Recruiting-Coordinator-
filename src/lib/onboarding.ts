@@ -8,7 +8,7 @@ import { geocode } from "./domain/geo";
 import { defaultCriteria } from "./domain/criteria";
 import { PROVIDERS } from "./providers/registry";
 import { addNote, createMission, createSource, listUsers, saveProfile, sanitizeBranding, updateOrgSettings, type Branding, type Ctx } from "./repo";
-import { decideApproval, listApprovals } from "./repo/approvals";
+import { createApproval, decideApproval, listApprovals } from "./repo/approvals";
 import { logContact } from "./repo/contacts";
 import type { Role } from "./domain/types";
 import { createCamp } from "./repo/approvals";
@@ -132,6 +132,28 @@ async function seedDemoActivity(db: Db, orgId: string) {
       await logContact({ db, orgId, userId: who.id, role: who.role }, ap.athleteId, { kind: c.kind, note: c.note ?? null, occurredAt: new Date(Date.now() - c.daysAgo * 86_400_000).toISOString() });
     }
     await addNote(ctx, ap.athleteId, notes[i]);
+  }
+  // Two players get demo "pages found" so the approve/dismiss flow can be tried.
+  // Placeholder example.com links only — never real people's pages.
+  const followed = await db.all<{ athlete_id: string }>("SELECT athlete_id FROM follows WHERE org_id = ? LIMIT 2", [orgId]);
+  for (const { athlete_id } of followed) {
+    const a = await db.get<{ first_name: string; last_name: string; high_school: string | null; grad_year: number | null }>("SELECT first_name, last_name, high_school, grad_year FROM athletes WHERE id = ?", [athlete_id]);
+    if (!a) continue;
+    const slug = `${a.first_name}-${a.last_name}`.toLowerCase();
+    const found = [
+      { site: "MaxPreps (demo)", kind: "stats", url: `https://example.com/demo/maxpreps/${slug}`, title: `${a.first_name} ${a.last_name} — ${a.high_school ?? ""} Baseball Stats (demo)` },
+      { site: "X (demo)", kind: "social", url: `https://example.com/demo/x/${slug}`, title: `${a.first_name} ${a.last_name} (@${a.first_name.toLowerCase()}_${a.last_name.toLowerCase()}) (demo)` },
+      { site: "Hudl (demo)", kind: "film", url: `https://example.com/demo/hudl/${slug}`, title: `${a.first_name} ${a.last_name} highlights (demo)` },
+    ];
+    const ids: string[] = [];
+    for (const f of found) {
+      const id = newId();
+      ids.push(id);
+      await db.run("INSERT INTO link_candidates (id, org_id, athlete_id, url, kind, site, title, snippet, score, reasons, status, found_at) VALUES (?,?,?,?,?,?,?,?,?,?,'pending',?)", [
+        id, orgId, athlete_id, f.url, f.kind, f.site, f.title, "Demo search result", 0.9, `First and last name, ${a.grad_year ? `Class of ${a.grad_year}, ` : ""}school (demo)`, nowIso(),
+      ]);
+    }
+    await createApproval(db, orgId, { kind: "links_found", title: `3 pages found for ${a.first_name} ${a.last_name}`, summary: "RC searched the public web and found MaxPreps, X and Hudl (demo placeholders). Keep the ones that are really him; approved stat pages update automatically.", payload: { candidateIds: ids }, athleteId: athlete_id });
   }
 }
 

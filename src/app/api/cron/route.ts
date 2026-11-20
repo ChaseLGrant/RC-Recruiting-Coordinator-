@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { runDueMissions } from "@/lib/jobs/runner";
 import { runDuePageChecks } from "@/lib/watch/runner";
+import { runFinderBatch } from "@/lib/finder/finder";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
   if (!secret || auth !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const db = await getDb();
   const results = await runDueMissions(db, "cron");
-  const pages = await runDuePageChecks(db);
-  return NextResponse.json({ ran: results.length, results: results.map((r) => ({ runId: r.runId, status: r.status, error: r.error })), statPages: pages });
+  const pages = await runDuePageChecks(db, 25_000);
+  const finder = await runFinderBatch(db, undefined, Date.now() + 15_000);
+  return NextResponse.json({ ran: results.length, results: results.map((r) => ({ runId: r.runId, status: r.status, error: r.error })), statPages: pages, pageFinder: finder });
 }

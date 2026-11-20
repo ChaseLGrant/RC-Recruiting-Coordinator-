@@ -17,7 +17,8 @@ export type ApprovalKind =
   | "itinerary" // scouting itinerary suggestion
   | "data_conflict" // conflicting athlete data / possible duplicate
   | "compliance" // compliance warning needing review
-  | "contact_found"; // contact details found on a page the staff linked
+  | "contact_found" // contact details found on a page the staff linked
+  | "links_found"; // possible stat/social/film pages found for a player
 
 export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   prospect: "New prospect",
@@ -28,6 +29,7 @@ export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   data_conflict: "Data conflict",
   compliance: "Compliance review",
   contact_found: "Contact info found",
+  links_found: "Player pages found",
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "saved";
@@ -85,7 +87,7 @@ export async function createApproval(
 export async function listApprovals(db: Db, orgId: string, statuses: ApprovalStatus[] = ["pending"], limit = 200): Promise<Approval[]> {
   return (
     await db.all(
-      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, CASE kind WHEN 'compliance' THEN 0 WHEN 'prospect' THEN 1 WHEN 'camp_list' THEN 2 WHEN 'outreach' THEN 3 WHEN 'board_change' THEN 4 WHEN 'itinerary' THEN 5 ELSE 6 END, created_at DESC LIMIT ?`,
+      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, CASE kind WHEN 'compliance' THEN 0 WHEN 'prospect' THEN 1 WHEN 'links_found' THEN 2 WHEN 'contact_found' THEN 2 WHEN 'camp_list' THEN 3 WHEN 'outreach' THEN 3 WHEN 'board_change' THEN 4 WHEN 'itinerary' THEN 5 ELSE 6 END, created_at DESC LIMIT ?`,
       [orgId, ...statuses, limit],
     )
   ).map(approvalFromRow);
@@ -103,6 +105,8 @@ export interface DecisionInput {
   note?: string;
   /** For outreach: coach-edited subject/body. */
   edits?: { subject?: string; body?: string };
+  /** For found links: which ones the coach kept (the rest are rejected). */
+  acceptIds?: string[];
 }
 
 export async function decideApproval(ctx: Ctx, approvalId: string, input: DecisionInput): Promise<{ result: string }> {
@@ -117,6 +121,10 @@ export async function decideApproval(ctx: Ctx, approvalId: string, input: Decisi
   await ctx.db.tx(async (db) => {
     const tctx = { ...ctx, db };
     if (input.decision === "approve") result = await applyApproval(tctx, a, input);
+    if (input.decision === "reject" && a.kind === "links_found") {
+      const { decideCandidates } = await import("../finder/finder");
+      await decideCandidates(tctx, [], (a.payload.candidateIds as string[]) ?? []);
+    }
     if (input.decision === "reject" && a.kind === "outreach" && a.payload.messageId) {
       await db.run("UPDATE messages SET status = 'rejected', updated_at = ? WHERE org_id = ? AND id = ?", [nowIso(), ctx.orgId, String(a.payload.messageId)]);
     }
@@ -184,6 +192,13 @@ async function applyApproval(ctx: Ctx, a: Approval, input: DecisionInput): Promi
     }
     case "itinerary":
       return "Itinerary saved";
+    case "links_found": {
+      const all = (a.payload.candidateIds as string[]) ?? [];
+      const keep = input.acceptIds ? all.filter((id) => input.acceptIds!.includes(id)) : all;
+      const { decideCandidates } = await import("../finder/finder");
+      const r = await decideCandidates(ctx, keep, all.filter((id) => !keep.includes(id)));
+      return `Kept ${r.accepted} page${r.accepted === 1 ? "" : "s"}${r.rejected ? `, dismissed ${r.rejected}` : ""}. Stat pages now update automatically.`;
+    }
     case "contact_found": {
       if (!a.athleteId) return "Approved";
       const ath = await getAthlete(ctx.db, ctx.orgId, a.athleteId);
@@ -382,7 +397,12 @@ export async function mergeAthletes(ctx: Ctx, keepId: string, dropId: string) {
   const keep = await getAthlete(ctx.db, ctx.orgId, keepId);
   const drop = await getAthlete(ctx.db, ctx.orgId, dropId);
   if (!keep || !drop) throw new Error("Athlete not found");
-  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events", "tracked_pages", "contacts"]) {
+  // Tables with one-row-per-URL: move only what the kept record doesn't already have.
+  for (const table of ["tracked_pages", "athlete_links", "link_candidates"]) {
+    await ctx.db.run(`UPDATE ${table} SET athlete_id = ? WHERE org_id = ? AND athlete_id = ? AND url NOT IN (SELECT url FROM ${table} WHERE org_id = ? AND athlete_id = ?)`, [keepId, ctx.orgId, dropId, ctx.orgId, keepId]);
+    await ctx.db.run(`DELETE FROM ${table} WHERE org_id = ? AND athlete_id = ?`, [ctx.orgId, dropId]);
+  }
+  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events", "contacts"]) {
     await ctx.db.run(`UPDATE ${table} SET athlete_id = ? WHERE org_id = ? AND athlete_id = ?`, [keepId, ctx.orgId, dropId]);
   }
   await ctx.db.run("DELETE FROM follows WHERE org_id = ? AND athlete_id = ? AND EXISTS (SELECT 1 FROM follows f WHERE f.org_id = ? AND f.athlete_id = ?)", [ctx.orgId, dropId, ctx.orgId, keepId]);
@@ -401,7 +421,7 @@ export async function deleteAthleteData(ctx: Ctx, athleteId: string, reason: str
   const a = await getAthlete(ctx.db, ctx.orgId, athleteId);
   if (!a) throw new Error("Athlete not found");
   await ctx.db.tx(async (db) => {
-    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events", "tracked_pages", "contacts"]) {
+    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events", "tracked_pages", "contacts", "athlete_links", "link_candidates"]) {
       await db.run(`DELETE FROM ${t} WHERE org_id = ? AND athlete_id = ?`, [ctx.orgId, athleteId]);
     }
     await db.run("DELETE FROM athletes WHERE org_id = ? AND id = ?", [ctx.orgId, athleteId]);

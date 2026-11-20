@@ -108,7 +108,8 @@ export async function decideApprovalAction(fd: FormData) {
     const subject = fd.has("subject") ? str(fd, "subject") : undefined;
     const body = fd.has("body") ? String(fd.get("body") ?? "") : undefined;
     const edits = subject !== undefined || body !== undefined ? { subject, body } : undefined;
-    const r = await decideApproval(ctx, str(fd, "approvalId"), { decision: str(fd, "decision") as Decision, note: str(fd, "note") || undefined, edits });
+    const acceptIds = fd.has("linksForm") ? fd.getAll("accept").map(String) : undefined;
+    const r = await decideApproval(ctx, str(fd, "approvalId"), { decision: str(fd, "decision") as Decision, note: str(fd, "note") || undefined, edits, acceptIds });
     msg = r.result;
   } catch (e) {
     redirect(withFlash(to, e instanceof Error ? e.message : "Failed", "err"));
@@ -619,4 +620,81 @@ export async function deleteContactAction(fd: FormData) {
     redirect(withFlash(`/athletes/${str(fd, "athleteId")}`, e instanceof Error ? e.message : "Failed", "err"));
   }
   revalidatePath(`/athletes/${str(fd, "athleteId")}`);
+}
+
+// ---------- add a player by hand ----------
+
+export async function addPlayerAction(fd: FormData) {
+  const { ctx, user, org } = await requireSession();
+  authorize(ctx, "note");
+  const first = str(fd, "firstName");
+  const last = str(fd, "lastName");
+  if (!first || !last) redirect(withFlash("/players/new", "Enter the player's first and last name.", "err"));
+  const { listSources, createSource, normalizePhone, normalizeXHandle, setFollow, addNote } = await import("@/lib/repo");
+  const { ingestRecords } = await import("@/lib/ingest");
+  const { logContact } = await import("@/lib/repo/contacts");
+  const { parseHeight } = await import("@/lib/domain/metrics");
+  const { normalizeState } = await import("@/lib/domain/geo");
+  const { normalizePositions } = await import("@/lib/import/mapping");
+
+  // One "seen by" source per coach, so every number they enter says who saw it.
+  const sourceName = `Seen by ${user.name}`;
+  const source = (await listSources(ctx.db, ctx.orgId)).find((s) => s.providerId === "manual" && s.name === sourceName)
+    ?? (await createSource(ctx.db, ctx.orgId, { providerId: "manual", name: sourceName, kind: "manual", status: "connected", statusDetail: "Players and numbers entered by hand", attestedBy: user.id }));
+  const today = new Date().toISOString().slice(0, 10);
+  const seenAt = str(fd, "seenAt");
+  const metrics: Array<{ key: string; value: number; measuredAt: string; verification: "unverified"; eventName: string }> = [];
+  const add = (key: string, v: number | null) => { if (v != null && Number.isFinite(v) && v > 0) metrics.push({ key, value: v, measuredAt: today, verification: "unverified", eventName: seenAt ? `Seen at ${seenAt}` : `Entered by ${user.name}` }); };
+  add("height_in", str(fd, "height") ? parseHeight(str(fd, "height")) : null);
+  add("weight_lb", str(fd, "weight") ? Number(str(fd, "weight")) : null);
+  add("exit_velo_mph", str(fd, "ev") ? Number(str(fd, "ev")) : null);
+  add("sixty_yd_sec", str(fd, "sixty") ? Number(str(fd, "sixty")) : null);
+  add("fb_velo_mph", str(fd, "fb") ? Number(str(fd, "fb")) : null);
+  const positions = normalizePositions(str(fd, "position"));
+  const links = str(fd, "links").split(/[\s,]+/).filter(Boolean);
+  let athleteId = "";
+  await ingestRecords(ctx.db, ctx.orgId, source, [{
+    firstName: first, lastName: last,
+    gradYear: Number(str(fd, "gradYear")) || null,
+    primaryPosition: positions[0] ?? null, secondaryPosition: positions[1] ?? null,
+    highSchool: str(fd, "school") || null, team: str(fd, "team") || null,
+    city: str(fd, "city") || null, state: normalizeState(str(fd, "state")), 
+    phone: normalizePhone(str(fd, "phone")), xHandle: normalizeXHandle(str(fd, "xHandle")),
+    email: str(fd, "email") || null,
+    metrics, profileUrls: links,
+  }], { isDemo: org.isDemo, sport: org.sport, onAthlete: async (_i, id) => { athleteId = id; } });
+  if (!athleteId) redirect(withFlash("/players/new", "Couldn't add that player. Check the name and try again.", "err"));
+
+  await setFollow(ctx, athleteId, true, str(fd, "boardStatus") || "watching");
+  if (str(fd, "note")) await addNote(ctx, athleteId, str(fd, "note"));
+  if (str(fd, "sawPlay")) await logContact(ctx, athleteId, { kind: "saw_play", note: seenAt ? `At ${seenAt}` : null });
+  let found = "";
+  try {
+    const { findPlayerPages } = await import("@/lib/finder/finder");
+    const r = await findPlayerPages(ctx.db, ctx.orgId, athleteId);
+    if (r.candidates) found = ` RC found ${r.candidates} possible page${r.candidates > 1 ? "s" : ""} for him. Review them below.`;
+  } catch { /* searching is best-effort; the player is saved either way */ }
+  revalidatePath("/", "layout");
+  redirect(withFlash(`/athletes/${athleteId}`, `${first} ${last} added to My Players.${found}`));
+}
+
+export async function findPagesAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  authorize(ctx, "import_data");
+  const id = str(fd, "athleteId");
+  const { findPlayerPages } = await import("@/lib/finder/finder");
+  const r = await findPlayerPages(ctx.db, ctx.orgId, id);
+  revalidatePath(`/athletes/${id}`);
+  redirect(withFlash(`/athletes/${id}#pages`, !r.searched ? (r.note ?? "Search isn't available.") : r.candidates ? `Found ${r.candidates} possible page${r.candidates > 1 ? "s" : ""}. Keep the ones that are really him.` : r.note ?? "No new pages found this time. RC will look again later.", !r.searched ? "err" : "ok"));
+}
+
+export async function decideLinksAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const id = str(fd, "athleteId");
+  const all = fd.getAll("candidateId").map(String);
+  const keep = str(fd, "decision") === "none" ? [] : fd.getAll("accept").map(String);
+  const { decideCandidates } = await import("@/lib/finder/finder");
+  const r = await decideCandidates(ctx, keep, all.filter((c) => !keep.includes(c)));
+  revalidatePath("/", "layout");
+  redirect(withFlash(`/athletes/${id}#pages`, `Kept ${r.accepted}, dismissed ${r.rejected}.`));
 }

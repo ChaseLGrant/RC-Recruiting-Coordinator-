@@ -5,10 +5,12 @@ import { getEvidence } from "@/lib/services";
 import { listCamps } from "@/lib/repo/approvals";
 import { METRICS, metricDef, SEASON_STAT_KEYS } from "@/lib/domain/metrics";
 import { listTrackedPages } from "@/lib/watch/runner";
+import { listCandidates, listLinks } from "@/lib/finder/finder";
+import { getSearchProvider } from "@/lib/finder/search";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
-import { deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { findPagesAction, decideLinksAction, deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
 import { Avatar, Badge, Button, Card, Flash, Input, Label, Select, fmtDate, timeAgo } from "@/components/ui";
 import { LogContactForm } from "@/components/contact-log";
 import { CONTACT_KINDS, contactCounts, listContacts, type ContactKind } from "@/lib/repo/contacts";
@@ -35,6 +37,8 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   const emailReady = org.settings.emailSendingEnabled && Boolean(getEmailProvider());
   const tz = org.settings.timezone;
   const [contacts, counts] = await Promise.all([listContacts(ctx.db, ctx.orgId, a.id), contactCounts(ctx.db, ctx.orgId, a.id)]);
+  const [links, pending] = await Promise.all([listLinks(ctx.db, ctx.orgId, a.id), listCandidates(ctx.db, ctx.orgId, { athleteId: a.id, status: "pending" })]);
+  const searchReady = Boolean(getSearchProvider());
 
   return (
     <div>
@@ -166,6 +170,46 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
+          <Card title="Pages & social" id="pages" action={<form action={findPagesAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{searchReady ? "Find his pages" : "Search not connected"}</button></form>}>
+            {links.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {links.map((l) => (
+                  <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer" className="rounded-[3px] border border-slate-300 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] hover:border-[var(--team-primary)]">
+                    {l.site}{l.site === "X" && a.xHandle ? ` @${a.xHandle}` : ""}
+                  </a>
+                ))}
+                {tracked.map((t) => (
+                  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="rounded-[3px] border border-slate-300 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] hover:border-[var(--team-primary)]">{t.site}</a>
+                ))}
+              </div>
+            )}
+            {pending.length > 0 ? (
+              <form action={decideLinksAction}>
+                <input type="hidden" name="athleteId" value={a.id} />
+                <p className="mb-2 text-sm font-semibold">RC found {pending.length} possible page{pending.length > 1 ? "s" : ""}. Keep the ones that are really him:</p>
+                <ul className="mb-3 divide-y divide-slate-100 border border-slate-200">
+                  {pending.map((c) => (
+                    <li key={c.id} className="flex items-start gap-3 p-3">
+                      <input type="hidden" name="candidateId" value={c.id} />
+                      <input type="checkbox" name="accept" value={c.id} defaultChecked className="mt-1 h-5 w-5 shrink-0 accent-[var(--team-primary)]" aria-label={`Keep ${c.site}`} />
+                      <div className="min-w-0 flex-1">
+                        <span className="eyebrow text-slate-700">{c.site}</span> <span className="text-[11px] text-slate-400">{c.kind === "stats" ? "Stats & schedule" : c.kind === "film" ? "Film" : "Social"}</span>
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-700 underline">{c.title || c.url}</a>
+                        <p className="text-xs text-slate-500">Matched: {c.reasons}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-2">
+                  <Button name="decision" value="keep">Keep checked</Button>
+                  <Button name="decision" value="none" variant="secondary">None are him</Button>
+                </div>
+              </form>
+            ) : links.length === 0 && tracked.length === 0 ? (
+              <p className="text-sm text-slate-500">{searchReady ? "No pages yet. Tap “Find his pages” and RC will search for his MaxPreps, Perfect Game, Hudl, X and Instagram for you to approve." : "Connect a search service in Settings and RC will find his MaxPreps, Perfect Game, Hudl, X and Instagram for you to approve. You can also paste a link below."}</p>
+            ) : null}
+          </Card>
+
           <Card title="Season stats" id="season" action={tracked.length > 0 ? <form action={checkPagesNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">Check now</button></form> : undefined}>
             {seasonKeys.length > 0 ? (
               <div className="mb-4 grid grid-cols-3 border-l border-t border-slate-900/10 sm:grid-cols-4">
