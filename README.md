@@ -59,6 +59,24 @@ npm test
 | **Following / Compare / Schedule** | One-click follow, a board with statuses, side-by-side comparison with sources, and a schedule labeled "participation not confirmed". | `/following`, `/compare`, `/schedule` |
 | **Security** | scrypt password hashing. Session tokens are hashed before storage. Role-based permissions (head coach, assistant, compliance, viewer). Every query is scoped by `org_id`, and tenant isolation is tested. Audit log. | `src/lib/auth.ts`, `src/lib/domain/permissions.ts` |
 
+## Bring in your list & live season stats
+
+- **Import your list** (`/import`): upload a CSV or Excel (.xlsx) file, or paste a Google Sheets link. RC matches the columns automatically, whatever they're called ("Player", "Pos", "Grad", "HS", "Ht", "EV", "Priority", "MaxPreps link", "Notes"). The coach checks a preview, then everyone lands in My Players with their board status and notes. Cells RC can't read are reported, never guessed. Re-importing doesn't duplicate players or notes.
+- **Season stat tracking**: link a player's public stats page once (on their profile, or a `profile_url` / link column in an imported list). RC re-checks it on a schedule (every 12 hours by default), records any stat that changed with its date and a link back, and reports it in the Daily Brief ("Batting avg .312 → .341 (MaxPreps)").
+  - Reads only pages your staff linked. It identifies itself, rate-limits per site (one request per 8 seconds or slower), obeys robots.txt, uses conditional requests, and never logs in or gets around paywalls or CAPTCHAs.
+  - The extractor is site-agnostic. It reads stat tables (AVG/OBP/SLG/HR/RBI/SB, ERA/IP/SO/BB/WHIP) and embedded page data, picks this season's row (not career), and rejects impossible values.
+  - **Status:** tested against a local test server with realistic pages, but **not yet against live MaxPreps or Perfect Game pages**, because the development environment can't reach those sites. Watch the first real checks. If a site's layout isn't read, the player's page says so, and adding a site-specific reader is a small change in `src/lib/watch/extract.ts`. Each site's terms of use are the program's own call.
+
+## Program demos
+
+Build a branded, clearly labeled demo for any program:
+
+```bash
+npm run demo:create -- demos/palomar.json
+```
+
+The demo is built from the program's campus, colors and staff, with fictional players from real nearby towns. Drop the official logo at `demos/palomar-logo.png` (or .svg/.jpg/.webp) before running, or upload it later in Settings → Branding.
+
 ## Trust & safety guarantees (each one is enforced by a test in `tests/trust.test.ts` or `tests/workflow.test.ts`)
 
 - **No fabricated data.** Real programs start empty. Fictional demo data can't be loaded into a real program.

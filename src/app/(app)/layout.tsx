@@ -45,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="font-semibold">{user.name}</div>
                 <div className="text-xs text-slate-500">{user.title ?? ROLE_LABEL[user.role]}</div>
               </div>
+              <Link href="/import" className="block px-4 py-2.5 hover:bg-slate-50">Import your list</Link>
               <Link href="/missions" className="block px-4 py-2.5 hover:bg-slate-50">Saved searches</Link>
               <Link href="/approvals" className="block px-4 py-2.5 hover:bg-slate-50">Everything waiting on me</Link>
               <Link href="/impact" className="block px-4 py-2.5 hover:bg-slate-50">Time RC saved you</Link>

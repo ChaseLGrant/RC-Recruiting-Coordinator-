@@ -4,15 +4,17 @@ import { PROVIDERS } from "@/lib/providers/registry";
 import { ATHLETE_CSV_COLUMNS, SCHEDULE_CSV_COLUMNS } from "@/lib/providers/csv";
 import { getEmailProvider } from "@/lib/providers/email";
 import { getAiProvider } from "@/lib/ai/provider";
+import { listTrackedPages } from "@/lib/watch/runner";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
   const { ctx, user, org } = await requireSession();
   const sp = await searchParams;
   const sources = await listSources(ctx.db, ctx.orgId);
+  const tracked = await listTrackedPages(ctx.db, ctx.orgId);
   const users = await listUsers(ctx.db, ctx.orgId);
   const audit = can(user.role, "view_audit") ? await listAudit(ctx, 60) : [];
   const comp = org.settings.compliance;
@@ -58,7 +60,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </Card>
 
       <Card title="Data sources" id="sources" action={<form action={syncSourcesAction}><Button variant="secondary" className="text-xs">Check connected sources now</Button></form>}>
-        <p className="mb-3 text-sm text-slate-600">RC uses only authorized data. It never scrapes websites and never claims to have searched a source it cannot access.</p>
+        <p className="mb-3 text-sm text-slate-600"><b>Have a recruiting spreadsheet?</b> Use <a href="/import" className="font-semibold text-brand-700 underline">Import your list</a>. It reads any column names, Excel files and Google Sheets. The form below is for files already in RC&apos;s template format.</p>
+        <p className="mb-3 text-sm text-slate-600">RC works from three kinds of data: lists and files your staff bring in, public stats pages your staff link to players (kept updated automatically; see Season stat tracking), and licensed data feeds once connected. It never logs in to other sites or gets around a paywall.</p>
         <table className="mb-5 min-w-full text-sm">
           <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Source</th><th>Type</th><th>Status</th><th>Details</th><th>Last checked</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
@@ -96,6 +99,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           Available providers: {PROVIDERS.map((p) => `${p.name} (${p.status(process.env, org).status.replace("_", " ")})`).join(" · ")}.{" "}
           AI search assist: {ai ? `${ai.name} connected (used only to read your search request)` : "not configured — RC uses its built-in rule-based parser"}.
         </div>
+      </Card>
+
+      <Card title="Season stat tracking" id="stat-tracking" action={<form action={checkPagesNowAction}><Button variant="secondary" className="text-xs">Check all now</Button></form>}>
+        <p className="mb-3 text-sm text-slate-600">Link a player&apos;s public stats page once (on their profile, or a <code>profile_url</code> column in your CSV) and RC re-checks it automatically all season. Changes show up in your daily summary. RC reads only pages your staff linked, identifies itself, goes slowly, follows each site&apos;s robots.txt, and never logs in or gets around a paywall.</p>
+        <p className="mb-3 text-sm"><b>{tracked.length}</b> pages linked · <b>{tracked.filter((t) => t.status === "ok").length}</b> updating normally · <b>{tracked.filter((t) => !["ok", "pending"].includes(t.status)).length}</b> need attention</p>
+        <form action={updateStatTrackingAction} className="flex flex-wrap items-end gap-4 text-sm">
+          <label className="flex items-center gap-2"><input type="checkbox" name="enabled" value="1" defaultChecked={org.settings.pageWatch.enabled} /> Keep stats updated automatically</label>
+          <label className="flex items-center gap-2">Check every
+            <Select name="everyHours" defaultValue={String(org.settings.pageWatch.everyHours)}>{[6, 12, 24, 48, 168].map((h) => <option key={h} value={h}>{h === 168 ? "week" : `${h} hours`}</option>)}</Select>
+          </label>
+          <Button disabled={!canSettings}>Save</Button>
+        </form>
       </Card>
 
       <Card title="Compliance" id="compliance">

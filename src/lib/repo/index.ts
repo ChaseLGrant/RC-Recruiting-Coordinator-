@@ -27,6 +27,8 @@ export interface OrgSettings {
   emailSendingEnabled: boolean;
   programDisplayName?: string;
   branding: Branding;
+  /** Automatic stat updates from public pages coaches link to players. */
+  pageWatch: { enabled: boolean; everyHours: number };
 }
 
 export interface Branding {
@@ -79,6 +81,7 @@ export function orgFromRow(r: Row): Org {
       emailSendingEnabled: Boolean(s.emailSendingEnabled),
       programDisplayName: s.programDisplayName,
       branding: sanitizeBranding(s.branding),
+      pageWatch: { enabled: s.pageWatch?.enabled ?? true, everyHours: Math.min(168, Math.max(6, Number(s.pageWatch?.everyHours ?? 12))) },
     },
   };
 }

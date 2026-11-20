@@ -172,6 +172,24 @@ export function parseRecruitingRequest(
     understood.push(`GPA ≥ ${v} (preferred; only when lawfully available)`);
   }
 
+  // Season stats: "hitting .350", ".320+ average", "ERA under 2.50", "5+ home runs"
+  const avg = t.match(/(?:hitting|batting|avg|average)\s*(?:of|over|above|at\s+least)?\s*(\.\d{3})|(\.\d{3})\s*\+?\s*(?:avg|average|hitters?|batting)/i);
+  if (avg) {
+    const v = Number(avg[1] ?? avg[2]);
+    metrics.push({ key: "avg", op: "gte", value: v, importance: "required" });
+    understood.push(`Batting average ≥ ${(avg[1] ?? avg[2])} this season`);
+  }
+  const era = t.match(/ERA\s*(?:under|below|of|<)\s*(\d(?:\.\d{1,2})?)/i) ?? t.match(/sub[-\s]?(\d(?:\.\d{1,2})?)\s*ERA/i);
+  if (era) {
+    metrics.push({ key: "era", op: "lte", value: Number(era[1]), importance: "required" });
+    understood.push(`ERA ≤ ${era[1]} this season`);
+  }
+  const hrs = t.match(/(\d{1,2})\s*\+?\s*(?:home\s*runs|homers|HRs?)\b/i);
+  if (hrs) {
+    metrics.push({ key: "hr", op: "gte", value: Number(hrs[1]), importance: "required" });
+    understood.push(`Home runs ≥ ${hrs[1]} this season`);
+  }
+
   criteria.metrics = metrics;
   if (verifiedOnly) understood.push("Verified data only for measurable standards");
 

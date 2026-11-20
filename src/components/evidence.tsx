@@ -10,6 +10,7 @@ export function VerificationBadge({ v, badge, sourceKind }: { v: Verification; b
   // Who vouched matters: a program's own import is attested by that program, not by an independent provider.
   if (badge && sourceKind === "import")
     return <Badge tone="green" title="Your program's import labeled this as verified; your staff attested to the file. It was not independently confirmed by RC or a licensed provider.">✓ {VERIFICATION_LABEL[v]} · per your import</Badge>;
+  if (sourceKind === "public_web") return <Badge tone="blue" title="As published on a public page your staff linked. Tap the number for the link.">Published online</Badge>;
   if (badge && sourceKind === "demo") return <Badge tone="green" title="Fictional demonstration data">✓ {VERIFICATION_LABEL[v]} · demo</Badge>;
   if (badge) return <Badge tone="green" title="Independently verified or officially published, dated, and not contradicted by an equally trusted source">✓ {VERIFICATION_LABEL[v]}</Badge>;
   if (v === "independently_verified" || v === "official") return <Badge tone="blue">{VERIFICATION_LABEL[v]}</Badge>;

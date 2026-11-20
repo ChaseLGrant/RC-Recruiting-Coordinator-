@@ -47,3 +47,13 @@ describe("radius followed by a comma", () => {
     expect(p.criteria.positions.sort()).toEqual(["2B", "SS"]);
   });
 });
+
+describe("season stat searches", () => {
+  it("understands batting average, ERA and home runs", () => {
+    const p = parseRecruitingRequest("2027 shortstops hitting .350 with 5+ home runs; pitchers with ERA under 2.50", null);
+    const m = Object.fromEntries(p.criteria.metrics.map((x) => [x.key, x]));
+    expect(m.avg).toMatchObject({ op: "gte", value: 0.35 });
+    expect(m.era).toMatchObject({ op: "lte", value: 2.5 });
+    expect(m.hr).toMatchObject({ op: "gte", value: 5 });
+  });
+});

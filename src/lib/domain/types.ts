@@ -46,7 +46,7 @@ export interface MetricObservation {
   sourceUrl: string | null;
 }
 
-export type SourceKind = "licensed_api" | "import" | "manual" | "demo";
+export type SourceKind = "licensed_api" | "import" | "manual" | "demo" | "public_web";
 
 export type Importance = "required" | "preferred" | "optional";
 

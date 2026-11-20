@@ -367,7 +367,7 @@ export async function mergeAthletes(ctx: Ctx, keepId: string, dropId: string) {
   const keep = await getAthlete(ctx.db, ctx.orgId, keepId);
   const drop = await getAthlete(ctx.db, ctx.orgId, dropId);
   if (!keep || !drop) throw new Error("Athlete not found");
-  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events"]) {
+  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events", "tracked_pages"]) {
     await ctx.db.run(`UPDATE ${table} SET athlete_id = ? WHERE org_id = ? AND athlete_id = ?`, [keepId, ctx.orgId, dropId]);
   }
   await ctx.db.run("DELETE FROM follows WHERE org_id = ? AND athlete_id = ? AND EXISTS (SELECT 1 FROM follows f WHERE f.org_id = ? AND f.athlete_id = ?)", [ctx.orgId, dropId, ctx.orgId, keepId]);
@@ -386,7 +386,7 @@ export async function deleteAthleteData(ctx: Ctx, athleteId: string, reason: str
   const a = await getAthlete(ctx.db, ctx.orgId, athleteId);
   if (!a) throw new Error("Athlete not found");
   await ctx.db.tx(async (db) => {
-    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events"]) {
+    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events", "tracked_pages"]) {
       await db.run(`DELETE FROM ${t} WHERE org_id = ? AND athlete_id = ?`, [ctx.orgId, athleteId]);
     }
     await db.run("DELETE FROM athletes WHERE org_id = ? AND id = ?", [ctx.orgId, athleteId]);

@@ -12,6 +12,8 @@ export interface MetricDef {
   format: (v: number) => string;
   /** Some data (GPA) is only lawful to hold with consent. */
   sensitive?: boolean;
+  /** A season game stat (changes through the season) rather than a measurable. */
+  season?: boolean;
 }
 
 export const METRICS: Record<string, MetricDef> = {
@@ -90,7 +92,32 @@ export const METRICS: Record<string, MetricDef> = {
   },
 };
 
+// Season game stats, read from public stat pages a coach links (MaxPreps, etc.).
+// These change through the season; RC records each change with its date.
+const rate = (v: number) => (v >= 1 ? v.toFixed(3) : v.toFixed(3).replace(/^0/, ""));
+const count = (v: number) => String(Math.round(v));
+function seasonStat(key: string, label: string, better: "higher" | "lower", format: (v: number) => string, tol = 0): MetricDef {
+  return { key, label, unit: "", better, conflictTolerance: tol, format, season: true };
+}
+Object.assign(METRICS, {
+  avg: seasonStat("avg", "Batting avg", "higher", rate, 0.015),
+  obp: seasonStat("obp", "On-base %", "higher", rate, 0.015),
+  slg: seasonStat("slg", "Slugging %", "higher", rate, 0.02),
+  ops: seasonStat("ops", "OPS", "higher", rate, 0.03),
+  hits: seasonStat("hits", "Hits", "higher", count),
+  hr: seasonStat("hr", "Home runs", "higher", count),
+  rbi: seasonStat("rbi", "RBI", "higher", count),
+  sb: seasonStat("sb", "Stolen bases", "higher", count),
+  era: seasonStat("era", "ERA", "lower", (v) => v.toFixed(2), 0.2),
+  ip: seasonStat("ip", "Innings pitched", "higher", (v) => v.toFixed(1)),
+  k_pitch: seasonStat("k_pitch", "Strikeouts (pitching)", "higher", count),
+  bb_pitch: seasonStat("bb_pitch", "Walks allowed", "lower", count),
+  whip: seasonStat("whip", "WHIP", "lower", (v) => v.toFixed(2), 0.1),
+});
+
 export const METRIC_KEYS = Object.keys(METRICS);
+export const SEASON_STAT_KEYS = METRIC_KEYS.filter((k) => METRICS[k].season);
+export const MEASURABLE_KEYS = METRIC_KEYS.filter((k) => !METRICS[k].season);
 
 export function metricDef(key: string): MetricDef {
   return (

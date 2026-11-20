@@ -41,7 +41,7 @@ export function parseCsv(text: string): string[][] {
 
 export const ATHLETE_CSV_COLUMNS = [
   "first_name", "last_name", "grad_year", "primary_position", "secondary_position", "high_school", "team", "city", "state", "zip",
-  "email", "guardian_email", "commitment_status", "commitment_verified", "external_id", "measured_at", "verification", "source_url", "event_name", "film_url",
+  "email", "guardian_email", "commitment_status", "commitment_verified", "external_id", "measured_at", "verification", "source_url", "event_name", "film_url", "profile_url",
   ...METRIC_KEYS, "height",
 ];
 
@@ -128,6 +128,7 @@ export function parseAthleteCsv(text: string): CsvParseResult {
       commitmentVerified: /^(true|yes|1|y)$/i.test(get("commitment_verified")),
       metrics,
       film: get("film_url") ? [{ url: get("film_url"), title: null, recordedAt: measuredAt }] : [],
+      profileUrls: get("profile_url") ? get("profile_url").split(/[\s;]+/).filter(Boolean) : [],
     });
   });
   return { records, errors };

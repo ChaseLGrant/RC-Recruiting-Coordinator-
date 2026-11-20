@@ -291,6 +291,33 @@ export const SCHEMA: string[] = [
     created_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_log(org_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS tracked_pages (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL REFERENCES athletes(id),
+    url TEXT NOT NULL,
+    site TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    status_detail TEXT,
+    paused INTEGER NOT NULL DEFAULT 0,
+    etag TEXT,
+    last_modified TEXT,
+    last_fetched_at TEXT,
+    last_changed_at TEXT,
+    stats_found INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE (org_id, athlete_id, url)
+  )`,
+  `CREATE TABLE IF NOT EXISTS pending_imports (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    list_name TEXT NOT NULL,
+    headers_json TEXT NOT NULL,
+    rows_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,

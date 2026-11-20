@@ -23,6 +23,8 @@ export interface ProviderAthleteRecord {
   metrics?: Array<{ key: string; value: number; measuredAt: string | null; verification: Verification; sourceUrl?: string | null; eventName?: string | null }>;
   film?: Array<{ url: string; title?: string | null; recordedAt?: string | null }>;
   games?: ProviderGame[];
+  /** Public stats pages to keep checking for season stats (e.g. a MaxPreps profile). */
+  profileUrls?: string[];
 }
 
 export interface ProviderGame {

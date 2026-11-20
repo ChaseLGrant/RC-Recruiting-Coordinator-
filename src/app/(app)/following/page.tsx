@@ -43,7 +43,10 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
           <h1 className="font-display text-4xl font-extrabold uppercase leading-none sm:text-5xl">My Players</h1>
           <p className="mt-1 text-[15px] text-slate-500">RC watches these players for new numbers and schedule changes and tells you on Home.</p>
         </div>
-        {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href="/import" variant="primary">Import your list</LinkButton>
+          {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
+        </div>
       </div>
 
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1 text-sm">
@@ -56,7 +59,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
       </div>
 
       {rows.length === 0 ? (
-        <Empty>No players here yet. <Link href="/" className="font-medium text-brand-700 underline">Search for players</Link> and tap &ldquo;Add to My Players&rdquo;.</Empty>
+        <Empty>No players here yet. <Link href="/import" className="font-medium text-brand-700 underline">Import the list you already have</Link>, or <Link href="/" className="font-medium text-brand-700 underline">search for players</Link> and tap &ldquo;Add to My Players&rdquo;.</Empty>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {rows.map((f) => {

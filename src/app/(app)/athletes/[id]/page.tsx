@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { getEvidence } from "@/lib/services";
 import { listCamps } from "@/lib/repo/approvals";
-import { METRICS, metricDef } from "@/lib/domain/metrics";
+import { METRICS, metricDef, SEASON_STAT_KEYS } from "@/lib/domain/metrics";
+import { listTrackedPages } from "@/lib/watch/runner";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
 import { freshnessLabel } from "@/lib/domain/provenance";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
-import { deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
 import { Avatar, Badge, Button, Card, Empty, Flash, Input, Label, Select, fmtDate, fmtDateTime, timeAgo } from "@/components/ui";
 import { DemoTag, MetricValue, VerificationBadge } from "@/components/evidence";
 
@@ -24,6 +25,8 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   if (!ev) notFound();
   const { athlete: a, metrics } = ev;
   const camps = (await listCamps(ctx.db, ctx.orgId)).filter((c) => c.startsAt > new Date().toISOString());
+  const tracked = await listTrackedPages(ctx.db, ctx.orgId, id);
+  const seasonKeys = SEASON_STAT_KEYS.filter((k) => metrics.has(k));
   const here = `/athletes/${a.id}`;
   const upcoming = ev.games.filter((g) => g.starts_at > new Date().toISOString());
   const idConf = identityConfidenceLabel(a.identityConfidence);
@@ -96,6 +99,39 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          <Card title="Season stats" id="season" action={tracked.length > 0 ? <form action={checkPagesNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">Check now</button></form> : undefined}>
+            {seasonKeys.length > 0 ? (
+              <div className="mb-4 grid grid-cols-3 border-l border-t border-slate-900/10 sm:grid-cols-4">
+                {seasonKeys.map((k) => (
+                  <div key={k} className="border-b border-r border-slate-900/10 bg-white px-3 py-2">
+                    <div className="eyebrow text-slate-400">{metricDef(k).label}</div>
+                    <div className="font-display whitespace-nowrap text-2xl font-bold"><MetricValue m={metrics.get(k)} compact /></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mb-4 text-sm text-slate-500">No season stats yet. Link the player&apos;s stats page once and RC keeps this updated all season, so you don&apos;t have to look it up.</p>
+            )}
+            {tracked.length > 0 && (
+              <ul className="mb-4 space-y-2 text-sm">
+                {tracked.map((t) => (
+                  <li key={t.id} className="flex flex-wrap items-center gap-2">
+                    <Badge tone={t.status === "ok" ? "green" : t.status === "pending" ? "slate" : "amber"}>{t.site}</Badge>
+                    <a href={t.url} target="_blank" rel="noopener noreferrer" className="max-w-[16rem] truncate text-brand-700 underline">{t.url.replace(/^https?:\/\/(www\.)?/, "")}</a>
+                    <span className="text-xs text-slate-500">{t.status === "ok" ? `Updated automatically · checked ${timeAgo(t.last_fetched_at)}` : t.status_detail ?? "Waiting for first check"}</span>
+                    <form action={untrackPageAction} className="ml-auto"><input type="hidden" name="pageId" value={t.id} /><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs text-slate-400 hover:text-rose-600">Unlink</button></form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={trackPageAction} className="flex flex-col gap-2 sm:flex-row">
+              <input type="hidden" name="athleteId" value={a.id} />
+              <label htmlFor="track-url" className="sr-only">Stats page link</label>
+              <Input id="track-url" name="url" placeholder="Paste a stats page link (MaxPreps, Perfect Game, team site…)" />
+              <Button className="shrink-0">Link & track</Button>
+            </form>
+          </Card>
+
           <Card title="Every number and where it came from">
             {metrics.size === 0 ? <Empty>No measurements on record from any connected source.</Empty> : (
               <div className="overflow-x-auto">

@@ -6,6 +6,7 @@
 import { Db, newId, nowIso } from "./db";
 import { locateAthlete, normalizeState } from "./domain/geo";
 import { safeUrl } from "./domain/urls";
+import { siteLabel } from "./watch/fetcher";
 import { decideIdentity, normalizeName } from "./domain/identity";
 import { metricDef } from "./domain/metrics";
 import { isVerifiedLevel, resolveMetric } from "./domain/provenance";
@@ -36,10 +37,10 @@ export async function ingestRecords(
   orgId: string,
   source: Source,
   records: ProviderAthleteRecord[],
-  opts: { isDemo: boolean; runId?: string | null; sport: string; createMissing?: boolean },
+  opts: { isDemo: boolean; runId?: string | null; sport: string; createMissing?: boolean; onAthlete?: (index: number, athleteId: string) => Promise<void> },
 ): Promise<IngestStats> {
   const stats = emptyStats();
-  for (const rec of records) {
+  for (const [index, rec] of records.entries()) {
     stats.records++;
     await db.tx(async (tdb) => {
       const athleteId = await resolveAthlete(tdb, orgId, source, rec, opts, stats);
@@ -50,6 +51,12 @@ export async function ingestRecords(
       await ingestMetrics(tdb, orgId, source, athleteId, rec, opts.runId ?? null, stats);
       await ingestFilm(tdb, orgId, source, athleteId, rec, stats);
       await ingestGames(tdb, orgId, source, athleteId, rec, opts.runId ?? null, stats);
+      if (opts.onAthlete) await opts.onAthlete(index, athleteId);
+      for (const raw of rec.profileUrls ?? []) {
+        const url = safeUrl(raw);
+        if (!url) continue;
+        await tdb.run("INSERT INTO tracked_pages (id, org_id, athlete_id, url, site, status, created_at) VALUES (?,?,?,?,?,'pending',?) ON CONFLICT (org_id, athlete_id, url) DO NOTHING", [newId(), orgId, athleteId, url, siteLabel(url), nowIso()]);
+      }
     });
   }
   return stats;

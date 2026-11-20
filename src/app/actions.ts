@@ -446,3 +446,93 @@ export async function updateBrandingAction(fd: FormData) {
   revalidatePath("/", "layout");
   redirect(withFlash("/settings#branding", "Branding saved."));
 }
+
+// ---------- season stat tracking ----------
+
+export async function trackPageAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const athleteId = str(fd, "athleteId");
+  const urls = str(fd, "url").split(/\s+/).filter(Boolean);
+  try {
+    if (urls.length === 0) throw new Error("Paste the link to the player's stats page.");
+    const { addTrackedPage, checkTrackedPages } = await import("@/lib/watch/runner");
+    for (const u of urls) await addTrackedPage(ctx, athleteId, u);
+    const r = await checkTrackedPages(ctx.db, ctx.orgId, { force: true, athleteId });
+    revalidatePath(`/athletes/${athleteId}`);
+    redirect(withFlash(`/athletes/${athleteId}`, r.newStats || r.changedStats ? `Linked. RC read ${r.newStats + r.changedStats} stats and will keep them updated automatically.` : "Linked. RC couldn't read stats from that page yet; see the note under Season stats."));
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    redirect(withFlash(`/athletes/${athleteId}`, e instanceof Error ? e.message : "Failed", "err"));
+  }
+}
+
+export async function untrackPageAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const { removeTrackedPage } = await import("@/lib/watch/runner");
+  await removeTrackedPage(ctx, str(fd, "pageId"));
+  revalidatePath(`/athletes/${str(fd, "athleteId")}`);
+}
+
+export async function checkPagesNowAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  authorize(ctx, "run_missions");
+  const athleteId = str(fd, "athleteId") || undefined;
+  const { checkTrackedPages } = await import("@/lib/watch/runner");
+  const r = await checkTrackedPages(ctx.db, ctx.orgId, { force: true, athleteId });
+  revalidatePath("/", "layout");
+  redirect(withFlash(athleteId ? `/athletes/${athleteId}` : "/settings#stat-tracking", `Checked ${r.checked} page${r.checked === 1 ? "" : "s"}: ${r.changedStats} stats changed, ${r.newStats} new${r.problems ? `, ${r.problems} need attention` : ""}.`));
+}
+
+export async function updateStatTrackingAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  await updateOrgSettings(ctx, { pageWatch: { enabled: Boolean(str(fd, "enabled")), everyHours: Number(str(fd, "everyHours")) || 12 } });
+  revalidatePath("/settings");
+  redirect(withFlash("/settings#stat-tracking", "Stat tracking settings saved."));
+}
+
+// ---------- import a coach's existing list ----------
+
+export async function stageListAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  let id: string;
+  try {
+    const { readUpload, readGoogleSheet, stageImport } = await import("@/lib/import/service");
+    const link = str(fd, "sheetUrl");
+    const file = fd.get("file");
+    let table;
+    let name = str(fd, "listName");
+    if (file instanceof File && file.size > 0) {
+      if (file.size > 10_000_000) throw new Error("That file is over 10 MB. Split it or remove extra tabs.");
+      table = await readUpload(file.name, Buffer.from(await file.arrayBuffer()));
+      name = name || file.name.replace(/\.(csv|xlsx|tsv|txt)$/i, "");
+    } else if (link) {
+      table = await readGoogleSheet(link);
+      name = name || "Google Sheet";
+    } else throw new Error("Choose a file or paste a Google Sheets link.");
+    id = await stageImport(ctx, name, table);
+  } catch (e) {
+    redirect(withFlash("/import", e instanceof Error ? e.message : "Couldn't read that list.", "err"));
+  }
+  redirect(`/import/${id}`);
+}
+
+export async function confirmListAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const id = str(fd, "importId");
+  const count = Number(str(fd, "columnCount"));
+  const mapping = Array.from({ length: count }, (_, i) => (str(fd, `col_${i}`) || "ignore") as import("@/lib/import/mapping").FieldId);
+  let msg: string;
+  try {
+    const { confirmImport } = await import("@/lib/import/service");
+    const r = await confirmImport(ctx, id, mapping);
+    msg = `Imported ${r.imported} players into My Players (${r.newPlayers} new, ${r.matchedExisting} already in RC)` +
+      (r.notesAdded ? `, kept ${r.notesAdded} notes` : "") +
+      (r.linksTracked ? `, and RC is now tracking ${r.linksTracked} stats pages` : "") + "." +
+      (r.skipped.length ? ` Skipped ${r.skipped.length} rows without a name.` : "") +
+      (r.warnings.length ? ` ${r.warnings[0]}` : "");
+  } catch (e) {
+    redirect(withFlash(`/import/${id}`, e instanceof Error ? e.message : "Import failed", "err"));
+  }
+  revalidatePath("/", "layout");
+  redirect(withFlash("/following", msg));
+}

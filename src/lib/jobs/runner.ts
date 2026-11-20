@@ -29,6 +29,7 @@ import {
 } from "../repo";
 import { createApproval } from "../repo/approvals";
 import { emptyStats, ingestRecords, type IngestStats } from "../ingest";
+import { checkTrackedPages } from "../watch/runner";
 
 export interface SyncResult {
   sourcesChecked: number;
@@ -109,6 +110,9 @@ async function executeMission(db: Db, orgId: string, mission: Mission, runId: st
   if (!profile) throw new Error("The recruiting profile for this mission was deleted");
 
   const sync = await syncSources(db, org, runId);
+  // Season stats from public pages coaches linked (runs only for pages that are due).
+  const pages = await checkTrackedPages(db, orgId, { runId });
+  sync.sourcesChecked += pages.checked;
 
   // Talent Discovery — evaluate everyone against the coach's own standards.
   const c = profile.criteria;

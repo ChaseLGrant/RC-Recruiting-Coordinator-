@@ -143,6 +143,29 @@ export const DEMO_SHOWCASE: DataProvider = {
   },
 };
 
+// Fictional season stats that "progress" each sync, so the demo shows RC
+// keeping stats current without anyone looking them up.
+function seasonStats(a: DemoAthlete, i: number, syncCount: number, anchor: Date) {
+  const r = rng(1000 + i);
+  const games = 10 + (syncCount - 1) * 2;
+  const ab = Math.round(games * (2.6 + r()));
+  const baseAvg = 0.22 + r() * 0.17 + (syncCount > 1 && i % 3 === 0 ? 0.012 * (syncCount - 1) : 0);
+  const hits = Math.round(ab * baseAvg);
+  const walks = Math.round(games * (0.3 + r() * 0.5));
+  const avg = Math.round((hits / ab) * 1000) / 1000;
+  const obp = Math.round(((hits + walks) / (ab + walks)) * 1000) / 1000;
+  const hr = Math.floor((r() * 4 * games) / 20);
+  const slg = Math.round(Math.min(1.2, avg + 0.08 + hr * 0.03 + r() * 0.1) * 1000) / 1000;
+  const measuredAt = isoDaysFrom(anchor, (syncCount - 1), 0).slice(0, 10);
+  const stat = (key: string, value: number) => ({ key, value, measuredAt, verification: "self_reported" as const, eventName: "Team-reported season stats (demo)" });
+  const out = [stat("avg", avg), stat("obp", obp), stat("slg", slg), stat("hits", hits), stat("hr", hr), stat("rbi", Math.round(hits * (0.5 + r() * 0.4))), stat("sb", Math.floor(r() * games * 0.4))];
+  if (a.pos[0] === "RHP" || a.pos[0] === "LHP" || a.pos[1] === "RHP") {
+    const ip = Math.round(games * (1.2 + r() * 1.5));
+    out.push(stat("ip", ip), stat("era", Math.round((1.2 + r() * 4) * 100) / 100), stat("k_pitch", Math.round(ip * (0.8 + r() * 0.6))), stat("whip", Math.round((0.9 + r() * 0.7) * 100) / 100));
+  }
+  return out;
+}
+
 export const DEMO_TEAM_FEED: DataProvider = {
   id: "demo_team_feed",
   name: "Demo Team Schedule Feed (fictional)",
@@ -186,6 +209,7 @@ export const DEMO_TEAM_FEED: DataProvider = {
         primaryPosition: a.pos[0], highSchool: a.school.replace(" High School", " HS"), city: a.town[0], state: a.town[1],
         team: `${a.school.replace(" High School (fictional)", "")} (fictional)`,
         metrics: [
+          ...seasonStats(a, i, syncCount, anchor),
           { key: "height_in", value: a.heightIn + heightDelta, measuredAt: "2026-09-01", verification: "self_reported" },
           { key: "weight_lb", value: a.weightLb + weightDelta, measuredAt: "2026-09-01", verification: "self_reported" },
           ...(a.gpa != null ? [{ key: "gpa", value: a.gpa, measuredAt: "2026-08-15", verification: "self_reported" as const }] : []),
