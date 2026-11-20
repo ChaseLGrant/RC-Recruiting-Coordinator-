@@ -33,7 +33,7 @@ export default async function CampsPage({ searchParams }: { searchParams: Promis
                   <Badge tone="violet">{messages.filter((m) => m.status === "sent").length} invitations sent</Badge>
                   <Badge tone="amber">{messages.filter((m) => m.status === "compliance_review").length} in compliance review</Badge>
                 </div>
-                <form action={campTargetingAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-lg bg-slate-50 p-3">
+                <form action={campTargetingAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-[4px] bg-slate-50 p-3">
                   <input type="hidden" name="campId" value={camp.id} /><input type="hidden" name="campName" value={camp.name} />
                   <div><Label>Target prospects matching</Label>
                     <Select name="profileId" defaultValue={camp.profileId ?? ""}><option value="">Choose a recruiting profile…</option>{profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>

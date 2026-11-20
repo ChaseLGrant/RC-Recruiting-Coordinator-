@@ -22,7 +22,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
           {missions.length === 0 ? <Empty>No missions. Run a search in <Link href="/discover" className="underline">Discover</Link> and save it as a recurring mission.</Empty> : (
             <ul className="space-y-3">
               {missions.map((m) => (
-                <li key={m.id} className="rounded-lg border border-slate-200 p-3">
+                <li key={m.id} className="rounded-[4px] border border-slate-200 p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <b className="text-sm">{m.name}</b>
                     <Badge tone={m.active ? "green" : "slate"}>{m.active ? "Active" : "Paused"}</Badge>
@@ -46,7 +46,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
           {profiles.length === 0 ? <Empty>No saved profiles yet.</Empty> : (
             <ul className="space-y-3">
               {profiles.map((p) => (
-                <li key={p.id} className="rounded-lg border border-slate-200 p-3">
+                <li key={p.id} className="rounded-[4px] border border-slate-200 p-3">
                   <div className="flex items-center justify-between gap-2"><b className="text-sm">{p.name}</b>
                     <div className="flex gap-2">
                       <Link href={`/discover?c=${encodeCriteria(p.criteria)}`} className="text-xs text-brand-600 hover:underline">Open in Discover</Link>

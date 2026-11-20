@@ -39,3 +39,11 @@ describe("natural-language recruiting request parser", () => {
     expect(p.warnings[0]).toMatch(/campus location/);
   });
 });
+
+describe("radius followed by a comma", () => {
+  it("still reads the radius (regression: was treated as nationwide)", () => {
+    const p = parseRecruitingRequest("2027 middle infielders within 75 miles, at least 5'10\", 88+ exit velo", { label: "Campus", lat: 33.15, lng: -117.18 });
+    expect(p.criteria.location).toMatchObject({ mode: "radius", radiusMi: 75 });
+    expect(p.criteria.positions.sort()).toEqual(["2B", "SS"]);
+  });
+});

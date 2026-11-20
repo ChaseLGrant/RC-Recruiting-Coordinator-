@@ -143,7 +143,7 @@ async function executeMission(db: Db, orgId: string, mission: Mission, runId: st
       const gaps = m.criteria.filter((x) => x.status !== "pass").map((x) => `${x.label}: ${x.status}`);
       await logEvent(db, orgId, {
         type: "athlete_discovered",
-        message: `${a.firstName} ${a.lastName} (${a.primaryPosition ?? "?"}, ${a.gradYear ?? "?"}) — ${m.summary} for "${profile.name}"`,
+        message: `New: ${a.firstName} ${a.lastName} (${a.primaryPosition ?? "?"}, ${a.gradYear ?? "?"}) fits ${m.matched === m.total ? "all" : `${m.matched} of`} ${m.total} of your "${profile.name}" standards`,
         athleteId: a.id, runId, detail: { missionId: mission.id, matched: m.matched, total: m.total },
       });
       await createApproval(db, orgId, {

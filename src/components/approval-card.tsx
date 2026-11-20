@@ -19,14 +19,14 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
   const c = COPY[a.kind];
   const dup = a.kind === "data_conflict" && a.payload.type === "possible_duplicate";
   return (
-    <article className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5 sm:p-5">
-      <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-500">
+    <article className="border border-slate-900/10 bg-white p-4 sm:p-5">
+      <div className="eyebrow mb-2 flex items-center gap-2 text-slate-500">
         <span className={`h-2 w-2 rounded-full ${c.dot}`} />
         {dup ? "Possible duplicate" : c.label}
-        {a.status === "saved" && <span className="rounded-full bg-slate-100 px-2 py-0.5">Saved for later</span>}
+        {a.status === "saved" && <span className="rounded-[3px] bg-slate-100 px-2 py-0.5">Saved for later</span>}
         <span className="ml-auto font-normal">{timeAgo(a.createdAt)}</span>
       </div>
-      <h3 className="text-[15px] font-semibold leading-snug text-slate-900">
+      <h3 className="text-[16px] font-bold leading-snug text-slate-900">
         {a.athleteId ? <Link href={`/athletes/${a.athleteId}`} className="hover:text-brand-700">{a.title}</Link> : a.title}
       </h3>
       <p className="mt-1 text-sm leading-relaxed text-slate-600">{a.summary}</p>
@@ -35,18 +35,18 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
           <input type="hidden" name="approvalId" value={a.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
           {message && (
-            <details className="mb-3 rounded-xl bg-slate-50 p-3">
+            <details className="mb-3 rounded-[4px] bg-slate-50 p-3">
               <summary className="text-sm font-medium text-brand-700">Read or edit the message to {message.to_email ?? "(no email on file)"}</summary>
               <label className="mt-3 block text-xs font-medium text-slate-500" htmlFor={`s-${a.id}`}>Subject</label>
-              <input id={`s-${a.id}`} name="subject" defaultValue={message.subject} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" />
+              <input id={`s-${a.id}`} name="subject" defaultValue={message.subject} className="mt-1 w-full rounded-[4px] border border-slate-200 bg-white px-3 py-2 text-sm" />
               <label className="mt-2 block text-xs font-medium text-slate-500" htmlFor={`b-${a.id}`}>Message</label>
-              <textarea id={`b-${a.id}`} name="body" defaultValue={message.body} rows={8} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed" />
+              <textarea id={`b-${a.id}`} name="body" defaultValue={message.body} rows={8} className="mt-1 w-full rounded-[4px] border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed" />
             </details>
           )}
           <div className="flex flex-wrap gap-2">
-            <button name="decision" value="approve" className="rounded-full bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">{dup ? "Merge records" : c.yes}</button>
-            <button name="decision" value="reject" className="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">{dup ? "Keep separate" : c.no}</button>
-            {a.status !== "saved" && <button name="decision" value="save" className="rounded-full px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100">Later</button>}
+            <button name="decision" value="approve" className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">{dup ? "Merge records" : c.yes}</button>
+            <button name="decision" value="reject" className="rounded-[3px] px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50">{dup ? "Keep separate" : c.no}</button>
+            {a.status !== "saved" && <button name="decision" value="save" className="rounded-[3px] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-slate-500 hover:bg-slate-100">Later</button>}
           </div>
         </form>
       ) : (

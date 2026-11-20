@@ -426,3 +426,23 @@ export async function deleteAthleteAction(fd: FormData) {
   revalidatePath("/", "layout");
   redirect(withFlash("/following", "Athlete and all related records were permanently deleted. The deletion is recorded in the audit log."));
 }
+
+export async function updateBrandingAction(fd: FormData) {
+  const { ctx, org } = await requireSession();
+  const current = org.settings.branding;
+  let logoDataUrl = current.logoDataUrl;
+  const file = fd.get("logo");
+  if (str(fd, "removeLogo")) logoDataUrl = null;
+  else if (file instanceof File && file.size > 0) {
+    const okTypes = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+    if (!okTypes.includes(file.type)) redirect(withFlash("/settings#branding", "Logo must be a PNG, JPG, WebP or SVG file.", "err"));
+    if (file.size > 500_000) redirect(withFlash("/settings#branding", "Logo must be under 500 KB.", "err"));
+    logoDataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  }
+  const { sanitizeBranding } = await import("@/lib/repo");
+  await updateOrgSettings(ctx, {
+    branding: sanitizeBranding({ teamName: str(fd, "teamName") || null, primary: str(fd, "primary"), ink: str(fd, "ink"), accent: str(fd, "accent"), logoDataUrl }),
+  });
+  revalidatePath("/", "layout");
+  redirect(withFlash("/settings#branding", "Branding saved."));
+}

@@ -27,11 +27,11 @@ function Icon({ d }: { d: string }) {
 export function NavLinks({ pending }: { pending: number }) {
   const path = usePathname();
   return (
-    <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
+    <nav className="hidden h-full items-stretch self-stretch md:flex" aria-label="Main">
       {TABS.map((t) => (
-        <Link key={t.href} href={t.href} className={`relative rounded-full px-4 py-2 text-[15px] font-medium transition ${isActive(path, t.href) ? "bg-white/15 text-white" : "text-blue-100/80 hover:bg-white/10 hover:text-white"}`}>
+        <Link key={t.href} href={t.href} className={`relative flex items-center px-4 text-[13px] font-semibold uppercase tracking-[0.1em] transition ${isActive(path, t.href) ? "text-white after:absolute after:inset-x-4 after:-bottom-1 after:h-1 after:bg-white" : "text-white/60 hover:text-white"}`}>
           {t.label}
-          {t.href === "/" && pending > 0 && <span className="ml-2 rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-amber-950">{pending}</span>}
+          {t.href === "/" && pending > 0 && <span className="ml-2 bg-[var(--team-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--team-ink)]">{pending}</span>}
         </Link>
       ))}
     </nav>
@@ -44,10 +44,10 @@ export function BottomTabs({ pending }: { pending: number }) {
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <div className="grid grid-cols-4">
         {TABS.map((t) => (
-          <Link key={t.href} href={t.href} className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium ${isActive(path, t.href) ? "text-brand-600" : "text-slate-500"}`}>
+          <Link key={t.href} href={t.href} className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold uppercase tracking-wider ${isActive(path, t.href) ? "text-brand-600" : "text-slate-500"}`}>
             <Icon d={t.icon} />
             {t.label}
-            {t.href === "/" && pending > 0 && <span className="absolute right-[28%] top-1.5 rounded-full bg-amber-400 px-1.5 text-[10px] font-bold text-amber-950">{pending}</span>}
+            {t.href === "/" && pending > 0 && <span className="absolute right-[28%] top-1.5 bg-[var(--team-accent)] px-1.5 text-[10px] font-bold text-[var(--team-ink)]">{pending}</span>}
           </Link>
         ))}
       </div>

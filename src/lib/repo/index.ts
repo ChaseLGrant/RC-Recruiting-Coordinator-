@@ -26,6 +26,31 @@ export interface OrgSettings {
   minutesPerTask: Partial<Record<EventType, number>>;
   emailSendingEnabled: boolean;
   programDisplayName?: string;
+  branding: Branding;
+}
+
+export interface Branding {
+  /** e.g. "Palomar Baseball" — shown in the header. */
+  teamName: string | null;
+  primary: string; // main team color (buttons, accents)
+  ink: string; // header / dark surfaces
+  accent: string; // secondary team color
+  /** Logo as a data: URL (PNG, JPEG, WebP or SVG shown via <img>, so scripts never run). */
+  logoDataUrl: string | null;
+}
+
+export const DEFAULT_BRANDING: Branding = { teamName: null, primary: "#1f3a68", ink: "#0f1722", accent: "#b8925a", logoDataUrl: null };
+
+const HEX = /^#[0-9a-f]{6}$/i;
+export function sanitizeBranding(b: Partial<Branding> | undefined): Branding {
+  const x = { ...DEFAULT_BRANDING, ...(b ?? {}) };
+  return {
+    teamName: x.teamName ? String(x.teamName).slice(0, 60) : null,
+    primary: HEX.test(x.primary) ? x.primary : DEFAULT_BRANDING.primary,
+    ink: HEX.test(x.ink) ? x.ink : DEFAULT_BRANDING.ink,
+    accent: HEX.test(x.accent) ? x.accent : DEFAULT_BRANDING.accent,
+    logoDataUrl: x.logoDataUrl && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(x.logoDataUrl) && x.logoDataUrl.length < 700_000 ? x.logoDataUrl : null,
+  };
 }
 
 export interface Org {
@@ -53,6 +78,7 @@ export function orgFromRow(r: Row): Org {
       minutesPerTask: { ...DEFAULT_MINUTES_PER_TASK, ...(s.minutesPerTask ?? {}) },
       emailSendingEnabled: Boolean(s.emailSendingEnabled),
       programDisplayName: s.programDisplayName,
+      branding: sanitizeBranding(s.branding),
     },
   };
 }

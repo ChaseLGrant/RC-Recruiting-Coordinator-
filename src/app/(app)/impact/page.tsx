@@ -17,17 +17,17 @@ export default async function ImpactPage({ searchParams }: { searchParams: Promi
     <div>
       <Flash flash={sp.flash} />
       <PageHeader title="Time RC saved you" subtitle="Counts are measured from RC's activity log. Time saved is an estimate based on the assumptions below, which you control." actions={
-        <div className="flex gap-2 text-sm">{[["7", "7 days"], ["30", "30 days"], ["all", "All time"]].map(([v, l]) => <Link key={v} href={`/impact?range=${v}`} className={`rounded-full px-3 py-1 ${range === v ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>{l}</Link>)}</div>
+        <div className="flex gap-2 text-sm">{[["7", "7 days"], ["30", "30 days"], ["all", "All time"]].map(([v, l]) => <Link key={v} href={`/impact?range=${v}`} className={`rounded-[3px] px-3 py-1 ${range === v ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>{l}</Link>)}</div>
       } />
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 md:col-span-1">
+        <div className="rounded-[4px] border border-emerald-200 bg-emerald-50 p-5 md:col-span-1">
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Estimated administrative time saved</div>
           <div className="mt-1 text-3xl font-semibold text-emerald-900">{formatMinutes(est.totalMinutes)}</div>
           <div className="mt-1 text-xs text-emerald-800">ESTIMATE — measured task counts × your minutes-per-task assumptions. Not a measured result.</div>
         </div>
         <div className="grid grid-cols-2 gap-3 md:col-span-2 md:grid-cols-5">
           {measured.map((t) => (
-            <div key={t} className="rounded-xl border border-slate-200 bg-white p-3">
+            <div key={t} className="rounded-[4px] border border-slate-200 bg-white p-3">
               <div className="text-xl font-semibold tabular-nums">{counts[t] ?? 0}</div>
               <div className="text-xs text-slate-600">{EVENT_TYPES[t]}</div>
               <div className="text-[10px] uppercase text-slate-400">measured</div>

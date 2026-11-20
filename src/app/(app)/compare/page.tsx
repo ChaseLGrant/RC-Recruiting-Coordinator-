@@ -15,7 +15,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <PageHeader title="Side-by-side comparison" subtitle="Facts only, with sources. Click a value to see where it came from. RC does not rank athletes." />
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-[4px] border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full text-sm">
           <thead><tr className="border-b border-slate-100"><th className="px-3 py-2" />{list.map((e) => <th key={e.athlete.id} className="px-3 py-2 text-left"><Link href={`/athletes/${e.athlete.id}`} className="hover:underline">{e.athlete.firstName} {e.athlete.lastName}</Link> {e.athlete.isDemo && <DemoTag />}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">

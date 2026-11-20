@@ -11,7 +11,7 @@ export function FitPill({ match }: { match: MatchResult }) {
   if (match.total === 0) return null;
   const all = match.matched === match.total;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${all ? "bg-emerald-50 text-emerald-800" : match.eligible ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-600"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] font-bold uppercase tracking-wider ${all ? "bg-emerald-50 text-emerald-800" : match.eligible ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-600"}`}>
       {all ? "✓ Fits all " + match.total : `Fits ${match.matched} of ${match.total}`}
     </span>
   );
@@ -39,15 +39,15 @@ export function PlayerCard({
 }) {
   const gaps = match ? gapText(match) : null;
   return (
-    <article className="group relative flex flex-col rounded-2xl bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-slate-900/5 transition hover:ring-brand-500/40 sm:p-5">
+    <article className="group relative flex flex-col rounded-[4px] border border-slate-900/10 border-t-[3px] border-t-[var(--team-primary)] bg-white p-4 shadow-[var(--shadow-soft)] transition hover:border-slate-900/25 hover:border-t-[var(--team-primary)] sm:p-5">
       <div className="flex items-start gap-3">
         <Avatar first={a.firstName} last={a.lastName} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={`/athletes/${a.id}`} className="text-[17px] font-semibold text-slate-900 after:absolute after:inset-0 hover:text-brand-700">{a.firstName} {a.lastName}</Link>
+            <Link href={`/athletes/${a.id}`} className="font-display text-2xl font-extrabold uppercase leading-none text-slate-900 after:absolute after:inset-0 hover:text-brand-700">{a.firstName} {a.lastName}</Link>
             {a.isDemo && <DemoTag />}
           </div>
-          <p className="truncate text-sm text-slate-500">
+          <p className="mt-1 truncate text-[13px] text-slate-500">
             {[a.primaryPosition && `${a.primaryPosition}${a.secondaryPosition ? `/${a.secondaryPosition}` : ""}`, a.gradYear && `Class of ${a.gradYear}`, [a.city, a.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
             {match?.distanceMi != null && ` · ${Math.round(match.distanceMi)} mi`}
           </p>
@@ -56,11 +56,11 @@ export function PlayerCard({
         {boardStatus && <Badge tone={boardStatus === "priority" ? "amber" : "slate"}>{boardStatus.replace(/_/g, " ")}</Badge>}
       </div>
 
-      <dl className="relative z-10 mt-4 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
+      <dl className="relative z-10 mt-4 grid grid-cols-2 gap-px border border-slate-900/10 bg-slate-900/10 sm:grid-cols-4">
         {statKeys.slice(0, 4).map((k) => (
-          <div key={k} className="min-w-0">
-            <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{metricDef(k).label}</dt>
-            <dd className="text-[15px] tabular-nums"><MetricValue m={metrics.get(k)} compact /></dd>
+          <div key={k} className="min-w-0 bg-white px-3 py-2">
+            <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{metricDef(k).label}</dt>
+            <dd className="font-display whitespace-nowrap text-xl font-bold tabular-nums"><MetricValue m={metrics.get(k)} compact /></dd>
           </div>
         ))}
       </dl>
@@ -72,7 +72,7 @@ export function PlayerCard({
           <input type="hidden" name="athleteId" value={a.id} />
           <input type="hidden" name="follow" value={following ? "0" : "1"} />
           <input type="hidden" name="returnTo" value={returnTo} />
-          <button className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${following ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "bg-brand-600 text-white hover:bg-brand-700"}`}>
+          <button className={`rounded-[3px] px-3.5 py-2 text-[12px] font-bold uppercase tracking-[0.06em] transition ${following ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "bg-brand-600 text-white hover:bg-brand-700"}`}>
             {following ? "✓ In My Players" : "+ Add to My Players"}
           </button>
         </form>

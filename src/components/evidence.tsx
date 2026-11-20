@@ -30,7 +30,7 @@ export function MetricValue({ m, compact }: { m: ResolvedMetric | undefined; com
         {m.conflict && <span className="text-amber-600" aria-label="sources disagree" title="Sources disagree. Tap to see both.">⚠</span>}
         {!compact && m.primary.verification === "self_reported" && <span className="text-[10px] uppercase text-amber-700">self-rep.</span>}
       </summary>
-      <div className="absolute left-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white p-3 text-left text-xs shadow-lg">
+      <div className="absolute left-0 z-20 mt-1 w-80 rounded-[4px] border border-slate-200 bg-white p-3 text-left text-xs shadow-lg">
         <div className="mb-2 font-semibold text-slate-900">{def.label}: where this number comes from</div>
         <ul className="space-y-2">
           {m.observations.map((o, i) => (

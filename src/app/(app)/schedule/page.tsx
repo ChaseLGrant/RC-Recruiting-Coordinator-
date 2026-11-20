@@ -34,15 +34,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader title="Schedule" subtitle="Upcoming games for your prospects, from connected sources. A scheduled team game never means RC knows the athlete will play." />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        <Link href={`/schedule?scope=following&days=${days}`} className={`rounded-full px-3 py-1 ${scope === "following" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following</Link>
-        <Link href={`/schedule?scope=matched&days=${days}`} className={`rounded-full px-3 py-1 ${scope === "matched" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following + mission matches</Link>
+        <Link href={`/schedule?scope=following&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "following" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following</Link>
+        <Link href={`/schedule?scope=matched&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "matched" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following + mission matches</Link>
         <span className="mx-2 text-slate-300">|</span>
-        {[7, 21, 60].map((d) => <Link key={d} href={`/schedule?scope=${scope}&days=${d}`} className={`rounded-full px-3 py-1 ${days === d ? "bg-slate-800 text-white" : "bg-white ring-1 ring-slate-200"}`}>Next {d} days</Link>)}
+        {[7, 21, 60].map((d) => <Link key={d} href={`/schedule?scope=${scope}&days=${d}`} className={`rounded-[3px] px-3 py-1 ${days === d ? "bg-slate-800 text-white" : "bg-white ring-1 ring-slate-200"}`}>Next {d} days</Link>)}
       </div>
       {games.length === 0 ? <Empty>No upcoming games found for these athletes in connected sources. Import schedules in Settings or follow more prospects.</Empty> : (
         <div className="space-y-4">
           {Array.from(byDay.entries()).map(([day, list]) => (
-            <section key={day} className="rounded-xl border border-slate-200 bg-white">
+            <section key={day} className="rounded-[4px] border border-slate-200 bg-white">
               <h2 className="border-b border-slate-100 px-4 py-2 text-sm font-semibold">{fmtDate(day + "T12:00:00Z", { weekday: "long", month: "long", day: "numeric" })} <span className="font-normal text-slate-500">· {list.length} game{list.length > 1 ? "s" : ""}</span></h2>
               <ul className="divide-y divide-slate-100">
                 {list.map((g) => {

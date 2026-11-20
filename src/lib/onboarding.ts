@@ -7,7 +7,8 @@ import { createUser } from "./auth";
 import { geocode } from "./domain/geo";
 import { defaultCriteria } from "./domain/criteria";
 import { PROVIDERS } from "./providers/registry";
-import { createMission, createSource, saveProfile, type Ctx } from "./repo";
+import { createMission, createSource, saveProfile, sanitizeBranding, updateOrgSettings, type Branding, type Ctx } from "./repo";
+import type { Role } from "./domain/types";
 import { createCamp } from "./repo/approvals";
 import { runMission } from "./jobs/runner";
 
@@ -30,27 +31,48 @@ export async function createProgram(
   return { orgId, userId };
 }
 
-/** Sets up a clearly-labeled demo workspace and runs its first mission for real. */
-export async function createDemoWorkspace(db: Db, email: string, password: string, coachName = "Demo Coach") {
+export interface DemoConfig {
+  programName: string; // e.g. "Palomar College Baseball (DEMO)"
+  teamName?: string; // header name, e.g. "Palomar Baseball"
+  campusZip: string;
+  branding?: Partial<Branding>;
+  /** First person is the account the demo opens as. */
+  staff: Array<{ name: string; title: string; role: Role; email: string }>;
+  password: string;
+  profile?: { name: string; gradYears: number[]; positions: string[]; radiusMi: number };
+  campName?: string;
+}
+
+/**
+ * Builds a clearly-labeled demo workspace for a program: its campus, colors,
+ * logo and staff accounts, with FICTIONAL players from real towns near campus.
+ * Runs the first search mission for real so the demo opens with work done.
+ */
+export async function createDemoProgram(db: Db, cfg: DemoConfig) {
+  const [lead, ...rest] = cfg.staff;
   const { orgId, userId } = await createProgram(db, {
-    programName: "Demo State University (DEMO — fictional data)",
-    campusLocation: "78712",
-    coachName,
-    coachTitle: "Head Baseball Coach (demo)",
-    email,
-    password,
+    programName: cfg.programName,
+    campusLocation: cfg.campusZip,
+    coachName: lead.name,
+    coachTitle: lead.title,
+    email: lead.email,
+    password: cfg.password,
     isDemo: true,
   });
+  if (lead.role !== "head_coach") await db.run("UPDATE users SET role = ? WHERE id = ?", [lead.role, userId]);
+  for (const st of rest) await createUser(db, orgId, { ...st, password: cfg.password });
   for (const prov of PROVIDERS.filter((x) => x.kind === "demo")) {
-    await createSource(db, orgId, { providerId: prov.id, name: prov.name, kind: "demo", status: "connected", statusDetail: "Demonstration data — all athletes are fictional." });
+    await createSource(db, orgId, { providerId: prov.id, name: prov.name, kind: "demo", status: "connected", statusDetail: "Demonstration data — all athletes are fictional.", config: { campusZip: cfg.campusZip } });
   }
   const ctx: Ctx = { db, orgId, userId, role: "head_coach" };
-  const campus = geocode("78712")!;
+  if (cfg.branding || cfg.teamName) await updateOrgSettings(ctx, { branding: sanitizeBranding({ ...cfg.branding, teamName: cfg.teamName ?? null }), programDisplayName: cfg.teamName });
+  const campus = geocode(cfg.campusZip)!;
+  const p = cfg.profile ?? { name: "2027–28 Shortstops near campus", gradYears: [2027, 2028], positions: ["SS"], radiusMi: 150 };
   const criteria = {
     ...defaultCriteria(),
-    gradYears: [2027, 2028],
-    positions: ["SS"],
-    location: { mode: "radius" as const, center: { label: `Campus (${campus.label})`, lat: campus.lat, lng: campus.lng }, radiusMi: 150 },
+    gradYears: p.gradYears,
+    positions: p.positions,
+    location: { mode: "radius" as const, center: { label: `Campus (${campus.label})`, lat: campus.lat, lng: campus.lng }, radiusMi: p.radiusMi },
     metrics: [
       { key: "height_in", op: "gte" as const, value: 70, importance: "required" as const },
       { key: "weight_lb", op: "gte" as const, value: 170, importance: "required" as const },
@@ -58,16 +80,22 @@ export async function createDemoWorkspace(db: Db, email: string, password: strin
       { key: "sixty_yd_sec", op: "lte" as const, value: 7.1, importance: "preferred" as const },
     ],
   };
-  const profileId = await saveProfile(ctx, "2027–28 Shortstops near campus", criteria);
+  const profileId = await saveProfile(ctx, p.name, criteria);
   const campStart = new Date(Date.now() + 45 * 86_400_000);
-  campStart.setUTCHours(15, 0, 0, 0);
-  const campId = await createCamp(ctx, { name: "Winter Prospect Camp (demo)", startsAt: campStart.toISOString(), location: "Demo Field, Austin, TX", registrationUrl: null, profileId });
-  const missionId = await createMission(ctx, {
-    profileId,
-    name: "Shortstop discovery + camp targeting",
-    schedule: "daily",
-    actions: { discover: true, monitorGames: true, prepareCampInvites: true, campId },
-  });
+  campStart.setUTCHours(17, 0, 0, 0);
+  const campId = await createCamp(ctx, { name: cfg.campName ?? "Winter Prospect Camp (demo)", startsAt: campStart.toISOString(), location: `Campus field (${campus.label})`, registrationUrl: null, profileId });
+  const missionId = await createMission(ctx, { profileId, name: `${p.name} — daily`, schedule: "daily", actions: { discover: true, monitorGames: true, prepareCampInvites: true, campId } });
   await runMission(db, orgId, missionId, "manual");
   return { orgId, userId };
+}
+
+/** Generic demo used by the sign-up page. */
+export async function createDemoWorkspace(db: Db, email: string, password: string, coachName = "Demo Coach") {
+  return createDemoProgram(db, {
+    programName: "Demo State University (DEMO — fictional data)",
+    teamName: "Demo State Baseball",
+    campusZip: "78712",
+    staff: [{ name: coachName, title: "Head Baseball Coach (demo)", role: "head_coach", email }],
+    password,
+  });
 }

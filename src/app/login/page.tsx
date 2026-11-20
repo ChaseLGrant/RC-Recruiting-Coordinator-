@@ -12,7 +12,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   return (
     <AuthShell>
-      <h1 className="text-lg font-semibold">Sign in to RC</h1>
+      <h1 className="font-display text-4xl font-extrabold uppercase">Sign in</h1>
       <p className="mb-4 text-sm text-slate-600">Your recruiting staff has been working.</p>
       <Flash error={error} />
       <form action={loginAction} className="space-y-3">

@@ -32,12 +32,12 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <section className="mb-6 rounded-3xl bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-slate-900/5 sm:p-7">
+      <section className="mb-6 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <Avatar first={a.firstName} last={a.lastName} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{a.firstName} {a.lastName}</h1>
+              <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.9] sm:text-6xl">{a.firstName} {a.lastName}</h1>
               {a.isDemo && <DemoTag />}
               {idConf !== "high" && <Badge tone="amber" title="RC isn't fully sure every linked record is this same player">Check identity</Badge>}
             </div>
@@ -58,8 +58,8 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
               <Button variant={ev.following ? "secondary" : "primary"}>{ev.following ? "✓ In My Players" : "+ Add to My Players"}</Button>
             </form>
             <details className="relative">
-              <summary className="inline-flex min-h-9 items-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Contact…</summary>
-              <form action={draftOutreachAction} className="absolute right-0 z-30 mt-2 w-72 space-y-2 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200">
+              <summary className="inline-flex min-h-9 items-center rounded-[3px] bg-white px-4 py-1.5 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Contact…</summary>
+              <form action={draftOutreachAction} className="absolute right-0 z-30 mt-2 w-72 space-y-2 rounded-[4px] bg-white p-4 shadow-xl ring-1 ring-slate-200">
                 <input type="hidden" name="athleteId" value={a.id} />
                 <Label>What should RC draft?</Label>
                 <Select name="kind" defaultValue="initial" className="w-full">
@@ -81,16 +81,16 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
           {["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec", "inf_velo_mph", "fb_velo_mph", "pop_time_sec", "of_velo_mph", "gpa"].filter((k) => metrics.has(k) || ["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"].includes(k)).slice(0, 6).filter((_, i, arr) => i < arr.length - (arr.length % 2)).map((k) => {
             const m = metrics.get(k);
             return (
-              <div key={k} className="rounded-2xl bg-slate-50 p-3">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{metricDef(k).label}</div>
-                <div className="mt-1 text-lg"><MetricValue m={m} /></div>
+              <div key={k} className="border-l-2 border-[var(--team-primary)] bg-slate-50 px-3 py-2.5">
+                <div className="eyebrow text-slate-500">{metricDef(k).label}</div>
+                <div className="font-display mt-1 text-3xl font-bold"><MetricValue m={m} /></div>
                 <div className="text-[11px] text-slate-500">{m ? (m.verifiedBadge ? "Verified" : m.primary.verification === "self_reported" ? "Self-reported" : m.conflict ? "Sources disagree" : "Not verified") : "No data yet"}</div>
               </div>
             );
           })}
         </div>
         {ev.conflicts.length > 0 && (
-          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">Sources disagree on {ev.conflicts.map((c) => metricDef(c.key).label.toLowerCase()).join(", ")}. RC shows both numbers instead of picking one. Tap the number to compare.</p>
+          <p className="mt-4 rounded-[4px] bg-amber-50 px-4 py-2.5 text-sm text-amber-900">Sources disagree on {ev.conflicts.map((c) => metricDef(c.key).label.toLowerCase()).join(", ")}. RC shows both numbers instead of picking one. Tap the number to compare.</p>
         )}
       </section>
 
@@ -121,13 +121,13 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
               </div>
             )}
             {ev.conflicts.length > 0 && (
-              <div className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-900">
+              <div className="mt-3 rounded-[4px] bg-rose-50 p-3 text-sm text-rose-900">
                 <b>Sources disagree.</b> RC shows every value and its date instead of choosing one:
                 <ul className="mt-1 list-disc pl-5">{ev.conflicts.map((c) => <li key={c.key}>{metricDef(c.key).label}: {c.conflictDetail}</li>)}</ul>
               </div>
             )}
             {ev.missing.length > 0 && (
-              <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+              <div className="mt-3 rounded-[4px] bg-slate-50 p-3 text-sm text-slate-700">
                 <b>Missing information:</b> {ev.missing.map((k) => MISSING_LABEL[k] ?? METRICS[k]?.label ?? k).join(", ")}. RC never estimates missing measurements.
               </div>
             )}
@@ -180,7 +180,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                         {emailReady ? (
                           <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="returnTo" value={here} /><Button variant="success" className="text-xs">Send now</Button></form>
                         ) : (
-                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-lg px-2 py-1 text-xs text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50">Open in my email client</a>
+                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-[4px] px-2 py-1 text-xs text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50">Open in my email client</a>
                         )}
                         <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="manual" value="1" /><input type="hidden" name="returnTo" value={here} /><Button variant="ghost" className="text-xs">Mark as sent</Button></form>
                       </div>
@@ -196,10 +196,10 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
           <Card title="Coach notes">
             <form action={addNoteAction} className="mb-3 space-y-2">
               <input type="hidden" name="athleteId" value={a.id} />
-              <textarea name="body" rows={3} placeholder="Your evaluation — RC never writes these for you." className="w-full rounded-lg border border-slate-300 p-2 text-sm" />
+              <textarea name="body" rows={3} placeholder="Your evaluation — RC never writes these for you." className="w-full rounded-[4px] border border-slate-300 p-2 text-sm" />
               <Button variant="secondary">Add note</Button>
             </form>
-            <ul className="space-y-2 text-sm">{ev.notes.map((n) => <li key={n.id} className="rounded-lg bg-slate-50 p-2"><div className="whitespace-pre-wrap">{n.body}</div><div className="mt-1 text-xs text-slate-400">{n.user_name} · {timeAgo(n.created_at)}</div></li>)}</ul>
+            <ul className="space-y-2 text-sm">{ev.notes.map((n) => <li key={n.id} className="rounded-[4px] bg-slate-50 p-2"><div className="whitespace-pre-wrap">{n.body}</div><div className="mt-1 text-xs text-slate-400">{n.user_name} · {timeAgo(n.created_at)}</div></li>)}</ul>
           </Card>
 
           <Card title="Linked source records">

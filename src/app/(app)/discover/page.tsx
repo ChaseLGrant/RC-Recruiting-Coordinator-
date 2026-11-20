@@ -42,7 +42,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
       {!criteria && (
         <div className="mx-auto mt-10 max-w-xl text-center text-slate-500">
-          <h1 className="text-xl font-semibold text-slate-900">Describe the players you need</h1>
+          <h1 className="font-display text-4xl font-extrabold uppercase text-slate-900">Describe the players you need</h1>
           <p className="mt-2 text-[15px]">Class, position, distance from campus, size and measurables, in plain English. RC shows you what it understood before it shows any players.</p>
         </div>
       )}
@@ -52,17 +52,17 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
           <div className="mx-auto mt-5 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Looking for</span>
-              {chips.map((d) => <span key={d} className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">{d}</span>)}
+              {chips.map((d) => <span key={d} className="rounded-[3px] bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">{d}</span>)}
               <a href="#filters" className="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-brand-700">Adjust</a>
             </div>
             {parsed && parsed.warnings.length > 0 && (
-              <div className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">{parsed.warnings.join(" ")}</div>
+              <div className="mt-3 rounded-[4px] bg-amber-50 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">{parsed.warnings.join(" ")}</div>
             )}
           </div>
 
           <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="font-display text-4xl font-extrabold uppercase leading-none sm:text-5xl">
                 {results.eligibleCount === 0 ? "No players fit yet" : `${results.eligibleCount} player${results.eligibleCount === 1 ? " fits" : "s fit"} your search`}
               </h1>
               <p className="mt-1 text-sm text-slate-500">
@@ -71,9 +71,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                   : <>{results.withCompleteVerifiedData} with every number confirmed · searched {results.totalEvaluated} players in your connected sources · tap any number to see its source</>}
               </p>
             </div>
-            <div className="flex rounded-full bg-white p-1 text-sm ring-1 ring-slate-900/10">
-              <Link href={`/discover?c=${encoded}`} className={`rounded-full px-3.5 py-1.5 font-medium ${!showAll ? "bg-brand-900 text-white" : "text-slate-600"}`}>Fits</Link>
-              <Link href={`/discover?c=${encoded}&all=1`} className={`rounded-full px-3.5 py-1.5 font-medium ${showAll ? "bg-brand-900 text-white" : "text-slate-600"}`}>Include close calls</Link>
+            <div className="flex rounded-[3px] bg-white p-1 text-sm ring-1 ring-slate-900/10">
+              <Link href={`/discover?c=${encoded}`} className={`rounded-[3px] px-3.5 py-1.5 font-medium ${!showAll ? "bg-brand-900 text-white" : "text-slate-600"}`}>Fits</Link>
+              <Link href={`/discover?c=${encoded}&all=1`} className={`rounded-[3px] px-3.5 py-1.5 font-medium ${showAll ? "bg-brand-900 text-white" : "text-slate-600"}`}>Include close calls</Link>
             </div>
           </div>
 
@@ -88,11 +88,11 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             </div>
           )}
           {results.rows.length > 1 && (
-            <div className="mt-4 text-right"><button form="compare-form" className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 hover:bg-slate-50">Compare selected side by side</button></div>
+            <div className="mt-4 text-right"><button form="compare-form" className="rounded-[3px] bg-white px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 hover:bg-slate-50">Compare selected side by side</button></div>
           )}
 
-          <section className="mt-10 rounded-3xl bg-brand-900 p-6 text-white sm:p-8">
-            <h2 className="text-xl font-semibold">Keep looking for me</h2>
+          <section className="mt-10 rounded-[4px] bg-brand-900 p-6 text-white sm:p-8">
+            <h2 className="font-display text-3xl font-extrabold uppercase">Keep looking for me</h2>
             <p className="mt-1 max-w-xl text-sm text-blue-200">RC re-runs this search every day, tells you about new players and changed numbers, and tracks their games. Nothing is sent to anyone without your OK.</p>
             <form action={saveProfileAction} className="mt-5 flex flex-wrap items-end gap-3">
               <input type="hidden" name="criteria" value={encoded} />
@@ -101,28 +101,28 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               <input type="hidden" name="runNow" value="1" />
               <div className="min-w-0 flex-1 basis-60">
                 <label htmlFor="save-name" className="mb-1 block text-xs font-medium text-blue-200">Name this search</label>
-                <input id="save-name" name="name" required defaultValue={defaultName(criteria)} className="w-full rounded-xl border-0 bg-white/10 px-3 py-2.5 text-white placeholder:text-blue-200/60 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <input id="save-name" name="name" required defaultValue={defaultName(criteria)} className="w-full rounded-[4px] border-0 bg-white/10 px-3 py-2.5 text-white placeholder:text-blue-200/60 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40" />
               </div>
               <div>
                 <label htmlFor="save-schedule" className="mb-1 block text-xs font-medium text-blue-200">How often</label>
-                <select id="save-schedule" name="schedule" defaultValue="daily" className="rounded-xl border-0 bg-white/10 px-3 py-2.5 text-white focus:outline-none"><option className="text-slate-900" value="daily">Every day</option><option className="text-slate-900" value="weekly">Every week</option></select>
+                <select id="save-schedule" name="schedule" defaultValue="daily" className="rounded-[4px] border-0 bg-white/10 px-3 py-2.5 text-white focus:outline-none"><option className="text-slate-900" value="daily">Every day</option><option className="text-slate-900" value="weekly">Every week</option></select>
               </div>
               {camps.length > 0 && (
                 <div>
                   <label htmlFor="save-camp" className="mb-1 block text-xs font-medium text-blue-200">Also build a camp invite list</label>
-                  <select id="save-camp" name="campId" defaultValue={parsed?.actions.prepareCampInvites ? camps[0].id : ""} className="rounded-xl border-0 bg-white/10 px-3 py-2.5 text-white focus:outline-none">
+                  <select id="save-camp" name="campId" defaultValue={parsed?.actions.prepareCampInvites ? camps[0].id : ""} className="rounded-[4px] border-0 bg-white/10 px-3 py-2.5 text-white focus:outline-none">
                     <option className="text-slate-900" value="">No</option>
                     {camps.map((c) => <option className="text-slate-900" key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
               )}
-              <button className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-900 hover:bg-blue-50">Save search</button>
+              <button className="rounded-[4px] bg-white px-5 py-2.5 text-sm font-semibold text-brand-900 hover:bg-blue-50">Save search</button>
             </form>
           </section>
         </>
       )}
 
-      <details id="filters" className="mt-8 rounded-2xl bg-white ring-1 ring-slate-900/5" open={!criteria ? false : undefined}>
+      <details id="filters" className="mt-8 rounded-[4px] bg-white ring-1 ring-slate-900/5" open={!criteria ? false : undefined}>
         <summary className="flex items-center justify-between px-5 py-4 text-[15px] font-semibold">Adjust standards precisely <span className="text-sm font-normal text-brand-700">Open</span></summary>
         <CriteriaEditor criteria={criteria} campusLabel={org.campus?.label ?? null} />
       </details>
@@ -184,7 +184,7 @@ function CriteriaEditor({ criteria, campusLabel }: { criteria: RecruitingCriteri
           {Object.values(METRICS).map((d) => {
             const m = metric(d.key);
             return (
-              <div key={d.key} className="rounded-lg border border-slate-200 p-2 text-sm">
+              <div key={d.key} className="rounded-[4px] border border-slate-200 p-2 text-sm">
                 <div className="mb-1 flex items-center justify-between"><span className="font-medium">{d.label} {d.better === "lower" ? "≤" : "≥"}</span>{d.sensitive && <span className="text-[10px] text-slate-500">only when lawfully available</span>}</div>
                 <div className="flex gap-1">
                   <Input name={`m_${d.key}`} defaultValue={m ? (d.key === "height_in" ? formatHeight(m.value) : m.value) : ""} placeholder={d.key === "height_in" ? `5'10"` : d.unit} className="w-24" />

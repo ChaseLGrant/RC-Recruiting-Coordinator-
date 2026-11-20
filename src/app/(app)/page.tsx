@@ -29,7 +29,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const highlights = brief.events
     .filter((e) => ["athlete_discovered", "metric_updated", "schedule_changed", "job_failed", "import_completed"].includes(e.type))
     .slice(0, 4);
-  const firstName = user.name.split(" ").at(-1) ?? user.name;
+  const lastName = user.name.split(" ").at(-1) ?? user.name;
   const hasData = brief.events.length > 0 || profiles.length > 0;
 
   return (
@@ -37,41 +37,44 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <Flash flash={sp.flash} error={sp.error} />
 
       {/* Search first: the one thing a coach comes here to do. */}
-      <section className="mx-auto max-w-3xl pb-8 pt-2 text-center sm:pt-6">
-        <p className="text-sm font-medium text-slate-500">{greeting()}, Coach {firstName}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Who are you looking for?</h1>
-        <p className="mx-auto mt-2 max-w-xl text-[15px] text-slate-500">Type it the way you&apos;d say it to an assistant. RC finds the players and shows where every number came from.</p>
-        <div className="mt-6 text-left"><SearchBox autoFocus={!hasData} /></div>
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {EXAMPLES.map((e) => (
-            <Link key={e} href={`/discover?q=${encodeURIComponent(e)}`} className="rounded-full bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-900/10 hover:text-brand-700 hover:ring-brand-500/40">{e}</Link>
-          ))}
-        </div>
-        {profiles.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
-            <span>Your saved searches:</span>
-            {profiles.slice(0, 4).map((p) => <Link key={p.id} href={`/discover?c=${encodeCriteria(p.criteria)}`} className="font-medium text-brand-700 hover:underline">{p.name}</Link>)}
+      <section className="relative overflow-hidden bg-[var(--team-ink)] px-5 pb-8 pt-8 text-white sm:px-10 sm:pb-10 sm:pt-12">
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[repeating-linear-gradient(135deg,transparent_0_22px,rgba(255,255,255,0.035)_22px_44px)]" />
+        <div className="relative max-w-3xl">
+          <p className="eyebrow text-white/60">{greeting()}, Coach {lastName}</p>
+          <h1 className="font-display mt-2 text-5xl font-extrabold uppercase leading-[0.9] sm:text-7xl">Who are you<br />looking for?</h1>
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/70">Say it the way you&apos;d tell an assistant. RC finds the players and shows where every number came from.</p>
+          <div className="mt-6"><SearchBox autoFocus={!hasData} /></div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {EXAMPLES.map((e) => (
+              <Link key={e} href={`/discover?q=${encodeURIComponent(e)}`} className="border border-white/20 px-3 py-1.5 text-xs text-white/80 hover:border-white/60 hover:text-white">{e}</Link>
+            ))}
           </div>
-        )}
+          {profiles.length > 0 && (
+            <p className="mt-4 text-xs text-white/60">
+              Saved searches:{" "}
+              {profiles.slice(0, 4).map((p, i) => <span key={p.id}>{i > 0 && " · "}<Link href={`/discover?c=${encodeCriteria(p.criteria)}`} className="font-semibold text-white underline decoration-white/30 underline-offset-4 hover:decoration-white">{p.name}</Link></span>)}
+            </p>
+          )}
+        </div>
       </section>
 
+      {/* Scoreboard: the three numbers that matter today. */}
+      <div className="mb-10 grid grid-cols-1 divide-y divide-slate-900/10 border border-t-0 border-slate-900/10 bg-white sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <Stat href="/approvals?kind=prospect" n={c.athlete_discovered ?? 0} label="New players for you" sub={user.lastBriefAt ? "since you last checked" : "last 24 hours"} />
+        <Stat href="/approvals" n={queue.filter((a) => a.status === "pending" && decidable(a.kind)).length} label="Waiting on your OK" sub="tap to review" highlight />
+        <Stat href="/schedule?days=7" n={Number(gamesThisWeek?.n ?? 0)} label="Games this week" sub="players you follow" />
+      </div>
+
       {brief.failedRuns.length > 0 && (
-        <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-sm text-rose-900 ring-1 ring-rose-200">
+        <div className="mb-6 border-l-4 border-rose-600 bg-white p-4 text-sm text-rose-900">
           <b>Something needs a look:</b> {brief.failedRuns.length} background search{brief.failedRuns.length > 1 ? "es" : ""} couldn&apos;t finish. <Link href="/missions" className="underline">See details</Link>
         </div>
       )}
 
-      {/* Three numbers that matter today. */}
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat href="/approvals?kind=prospect" n={c.athlete_discovered ?? 0} label="new players found for you" sub={user.lastBriefAt ? "since you last checked" : "in the last 24 hours"} />
-        <Stat href="/approvals" n={queue.filter((a) => a.status === "pending" && decidable(a.kind)).length} label="waiting on your OK" sub="tap to review" highlight />
-        <Stat href="/schedule?days=7" n={Number(gamesThisWeek?.n ?? 0)} label="games this week" sub="for players you follow" />
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-5">
         <section className="lg:col-span-3">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold">Needs your OK</h2>
+            <h2 className="font-display text-2xl font-extrabold uppercase">Needs your OK</h2>
             {queue.length > 4 && <Link href="/approvals" className="text-sm font-medium text-brand-700 hover:underline">See all {queue.length}</Link>}
           </div>
           {queue.length === 0 ? (
@@ -87,8 +90,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
         <aside className="space-y-6 lg:col-span-2">
           <section>
-            <h2 className="mb-3 text-lg font-semibold">This week</h2>
-            <div className="rounded-2xl bg-white p-2 ring-1 ring-slate-900/5">
+            <h2 className="font-display mb-3 text-2xl font-extrabold uppercase">This week</h2>
+            <div className="border border-slate-900/10 bg-white p-2">
               {brief.tasks.length === 0 ? <p className="p-3 text-sm text-slate-500">Nothing scheduled. RC adds scouting opportunities here when players you follow have games.</p> : (
                 <ul className="divide-y divide-slate-100">
                   {brief.tasks.slice(0, 5).map((t) => (
@@ -104,10 +107,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
           <section>
             <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="text-lg font-semibold">What RC did</h2>
+              <h2 className="font-display text-2xl font-extrabold uppercase">What RC did</h2>
               <form action={markBriefReviewedAction}><button className="text-sm font-medium text-brand-700 hover:underline">Mark as read</button></form>
             </div>
-            <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
+            <div className="border border-slate-900/10 bg-white p-4">
               <p className="text-sm text-slate-600">
                 Checked <b className="text-slate-900">{c.source_checked ?? 0}</b> data sources, reviewed <b className="text-slate-900">{c.athlete_researched ?? 0}</b> player profiles, logged <b className="text-slate-900">{(c.metric_updated ?? 0) + (c.metric_verified ?? 0)}</b> measurements and <b className="text-slate-900">{(c.game_identified ?? 0) + (c.schedule_changed ?? 0)}</b> games.
               </p>
@@ -133,12 +136,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
 function Stat({ href, n, label, sub, highlight }: { href: string; n: number; label: string; sub: string; highlight?: boolean }) {
   return (
-    <Link href={href} className={`flex items-center gap-4 rounded-2xl p-4 ring-1 transition sm:p-5 ${highlight && n > 0 ? "bg-brand-900 text-white ring-brand-900 hover:bg-brand-700" : "bg-white ring-slate-900/5 hover:ring-brand-500/40"}`}>
-      <span className="text-3xl font-semibold tabular-nums">{n}</span>
-      <span className="leading-tight">
-        <span className="block text-[15px] font-medium">{label}</span>
-        <span className={`block text-xs ${highlight && n > 0 ? "text-blue-200" : "text-slate-500"}`}>{sub}</span>
+    <Link href={href} className="group flex items-end justify-between gap-4 px-5 py-4 hover:bg-slate-50">
+      <span>
+        <span className="eyebrow block text-slate-500">{label}</span>
+        <span className="mt-1 block text-xs text-slate-400">{sub}</span>
       </span>
+      <span className={`font-display text-6xl font-extrabold leading-none tabular-nums ${highlight && n > 0 ? "text-[var(--team-primary)]" : "text-slate-900"}`}>{n}</span>
     </Link>
   );
 }

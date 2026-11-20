@@ -40,16 +40,16 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
       <Flash flash={sp.flash} error={sp.error} />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">My Players</h1>
+          <h1 className="font-display text-4xl font-extrabold uppercase leading-none sm:text-5xl">My Players</h1>
           <p className="mt-1 text-[15px] text-slate-500">RC watches these players for new numbers and schedule changes and tells you on Home.</p>
         </div>
         {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
       </div>
 
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1 text-sm">
-        <Link href="/following" className={`shrink-0 rounded-full px-3.5 py-1.5 font-medium ${!sp.status ? "bg-brand-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-900/10"}`}>All {follows.length}</Link>
+        <Link href="/following" className={`shrink-0 rounded-[3px] px-3.5 py-1.5 font-medium ${!sp.status ? "bg-brand-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-900/10"}`}>All {follows.length}</Link>
         {BOARD.map((b) => (
-          <Link key={b.id} href={`/following?status=${b.id}`} className={`shrink-0 rounded-full px-3.5 py-1.5 font-medium ${sp.status === b.id ? "bg-brand-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-900/10"}`}>
+          <Link key={b.id} href={`/following?status=${b.id}`} className={`shrink-0 rounded-[3px] px-3.5 py-1.5 font-medium ${sp.status === b.id ? "bg-brand-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-900/10"}`}>
             {b.label} {follows.filter((f) => f.board_status === b.id).length}
           </Link>
         ))}
@@ -67,14 +67,14 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
               <div key={a.id} className="flex flex-col gap-2">
                 <PlayerCard athlete={a} metrics={resolveAll(obs.filter((o) => o.athleteId === a.id))} statKeys={["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"]} following nextGame={games.get(a.id)} filmCount={filmBy.get(a.id)} returnTo={here} boardStatus={f.board_status} />
                 <div className="flex flex-wrap items-center gap-2 px-1 text-xs text-slate-500">
-                  {recent && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">New: {recent.message.replace(`${a.firstName} ${a.lastName}: `, "")} · {timeAgo(recent.created_at)}</span>}
+                  {recent && <span className="rounded-[3px] bg-sky-50 px-2.5 py-1 text-sky-800">New: {recent.message.replace(`${a.firstName} ${a.lastName}: `, "")} · {timeAgo(recent.created_at)}</span>}
                   <form action={toggleFollowAction} className="ml-auto flex items-center gap-1">
                     <input type="hidden" name="athleteId" value={a.id} /><input type="hidden" name="follow" value="1" /><input type="hidden" name="returnTo" value={here} />
                     <label htmlFor={`bs-${a.id}`} className="sr-only">Board status</label>
-                    <select id={`bs-${a.id}`} name="boardStatus" defaultValue={f.board_status} className="rounded-full border-0 bg-white px-2.5 py-1 text-xs ring-1 ring-slate-900/10">
+                    <select id={`bs-${a.id}`} name="boardStatus" defaultValue={f.board_status} className="rounded-[3px] border-0 bg-white px-2.5 py-1 text-xs ring-1 ring-slate-900/10">
                       {BOARD.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                     </select>
-                    <button className="rounded-full px-2 py-1 font-medium text-brand-700 hover:bg-brand-50">Move</button>
+                    <button className="rounded-[3px] px-2 py-1 font-medium text-brand-700 hover:bg-brand-50">Move</button>
                   </form>
                 </div>
               </div>

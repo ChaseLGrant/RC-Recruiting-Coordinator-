@@ -1,31 +1,53 @@
 @import "tailwindcss";
 
-/* RC visual system: calm navy ink on a cool off-white, one confident blue for
-   actions, green only for verified facts. Generous space, few borders. */
+/* RC visual system — "press box": a sports-page grotesque for reading, a
+   stadium-condensed face for headlines and numbers, squared corners, hairline
+   rules, and the PROGRAM's own colors (set per school in Settings → Branding). */
 @theme {
-  --color-brand-50: #eef3ff;
-  --color-brand-100: #dce6ff;
-  --color-brand-500: #3567e8;
-  --color-brand-600: #1d4fd8;
-  --color-brand-700: #173fae;
-  --color-brand-900: #0b1730;
-  --color-ink: #0b1220;
-  --color-canvas: #f4f6f9;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --shadow-soft: 0 1px 2px rgba(11, 18, 32, 0.04), 0 4px 16px rgba(11, 18, 32, 0.06);
+  --color-brand-50: color-mix(in oklab, var(--team-primary) 8%, white);
+  --color-brand-100: color-mix(in oklab, var(--team-primary) 16%, white);
+  --color-brand-500: color-mix(in oklab, var(--team-primary) 85%, white);
+  --color-brand-600: var(--team-primary);
+  --color-brand-700: color-mix(in oklab, var(--team-primary) 82%, black);
+  --color-brand-900: var(--team-ink);
+  --color-ink: #111418;
+  --color-canvas: #f3f2ef;
+  --font-sans: "Libre Franklin Variable", "Franklin Gothic Medium", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Big Shoulders Display", "Oswald", "Arial Narrow", sans-serif;
+  --shadow-soft: 0 1px 0 rgba(17, 20, 24, 0.04), 0 1px 3px rgba(17, 20, 24, 0.06);
+}
+
+:root {
+  /* Default RC colors; each program overrides these with its own. */
+  --team-primary: #1f3a68;
+  --team-ink: #0f1722;
+  --team-accent: #b8925a;
+}
+
+/* Re-derive the brand scale inside each program's scope so its colors win. */
+.team-scope {
+  --color-brand-50: color-mix(in oklab, var(--team-primary) 8%, white);
+  --color-brand-100: color-mix(in oklab, var(--team-primary) 16%, white);
+  --color-brand-500: color-mix(in oklab, var(--team-primary) 85%, white);
+  --color-brand-600: var(--team-primary);
+  --color-brand-700: color-mix(in oklab, var(--team-primary) 82%, black);
+  --color-brand-900: var(--team-ink);
 }
 
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
-  font-feature-settings: "ss01", "cv11";
+  font-feature-settings: "tnum" 0;
 }
 
-h1, h2, h3 { text-wrap: balance; letter-spacing: -0.01em; }
+h1, h2, h3 { text-wrap: balance; }
+
+.font-display { font-family: var(--font-display); letter-spacing: 0.01em; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 
 details > summary { list-style: none; cursor: pointer; }
 details > summary::-webkit-details-marker { display: none; }
 
-:focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--team-primary); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

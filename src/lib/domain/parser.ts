@@ -65,7 +65,7 @@ export function parseRecruitingRequest(
   }
 
   // Radius
-  const radius = t.match(/within\s+(\d{1,4})\s*(?:mi|miles?)\b(?:\s+(?:of|from)\s+([^.;]+?))?(?=[.;]|\s+(?:minimum|min|with|who|and\s+(?:show|monitor|prepare))|$)/i);
+  const radius = t.match(/within\s+(\d{1,4})\s*(?:mi|miles?)\b(?:\s+(?:of|from)\s+([^.;,]+?(?:,\s*[A-Z]{2}\b)?))?(?=[.;,]|\s+(?:minimum|min|at\s+least|with|who|and\s+(?:show|monitor|prepare))|$)/i);
   if (radius) {
     const miles = Number(radius[1]);
     const placeRaw = (radius[2] ?? "campus").trim().replace(/,$/, "");

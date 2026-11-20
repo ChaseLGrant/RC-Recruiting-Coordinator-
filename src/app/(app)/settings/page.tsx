@@ -6,7 +6,7 @@ import { getEmailProvider } from "@/lib/providers/email";
 import { getAiProvider } from "@/lib/ai/provider";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -35,6 +35,28 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {org.campus && <p className="mt-2 text-xs text-slate-500">Geocoded to {org.campus.lat.toFixed(4)}, {org.campus.lng.toFixed(4)} (US ZIP centroid data, offline).</p>}
       </Card>
 
+      <Card title="Branding" id="branding">
+        <form action={updateBrandingAction} className="grid gap-4 md:grid-cols-[auto_1fr]">
+          <div className="grid h-28 w-28 place-items-center border border-slate-200 bg-[var(--team-ink)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {org.settings.branding.logoDataUrl ? <img src={org.settings.branding.logoDataUrl} alt="Current logo" className="h-20 w-20 object-contain" /> : <span className="px-2 text-center text-[11px] text-white/60">No logo yet</span>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><Label>Team name in the header</Label><Input name="teamName" defaultValue={org.settings.branding.teamName ?? ""} placeholder="e.g. Palomar Baseball" /></div>
+            <div><Label>Logo (PNG, JPG, WebP or SVG, under 500 KB)</Label><Input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></div>
+            <div className="flex gap-3">
+              <label className="text-xs font-medium text-slate-600">Main color<input name="primary" type="color" defaultValue={org.settings.branding.primary} className="mt-1 block h-10 w-16 cursor-pointer border border-slate-200" /></label>
+              <label className="text-xs font-medium text-slate-600">Header color<input name="ink" type="color" defaultValue={org.settings.branding.ink} className="mt-1 block h-10 w-16 cursor-pointer border border-slate-200" /></label>
+              <label className="text-xs font-medium text-slate-600">Accent color<input name="accent" type="color" defaultValue={org.settings.branding.accent} className="mt-1 block h-10 w-16 cursor-pointer border border-slate-200" /></label>
+            </div>
+            <div className="flex items-end gap-3">
+              {org.settings.branding.logoDataUrl && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="removeLogo" value="1" /> Remove logo</label>}
+              <Button disabled={!canSettings}>Save branding</Button>
+            </div>
+          </div>
+        </form>
+      </Card>
+
       <Card title="Data sources" id="sources" action={<form action={syncSourcesAction}><Button variant="secondary" className="text-xs">Check connected sources now</Button></form>}>
         <p className="mb-3 text-sm text-slate-600">RC uses only authorized data. It never scrapes websites and never claims to have searched a source it cannot access.</p>
         <table className="mb-5 min-w-full text-sm">
@@ -52,7 +74,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </tbody>
         </table>
         <div className="grid gap-4 md:grid-cols-2">
-          <form action={importCsvAction} className="space-y-2 rounded-lg border border-slate-200 p-3">
+          <form action={importCsvAction} className="space-y-2 rounded-[4px] border border-slate-200 p-3">
             <div className="text-sm font-semibold">Import a CSV</div>
             <div className="flex gap-3 text-sm">
               <label className="flex items-center gap-1"><input type="radio" name="kind" value="athletes" defaultChecked /> Athletes & measurements</label>
@@ -63,7 +85,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <label className="flex items-start gap-2 text-xs text-slate-700"><input type="checkbox" name="attest" value="1" className="mt-0.5" /> I confirm our program is authorized to use this data (our own evaluations, our camp results, or a licensed export) and that verification labels in the file are accurate.</label>
             <Button disabled={!can(user.role, "import_data")}>Import</Button>
           </form>
-          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+          <div className="rounded-[4px] bg-slate-50 p-3 text-xs text-slate-600">
             <div className="mb-1 font-semibold text-slate-800">CSV columns</div>
             <p><b>Athletes:</b> {ATHLETE_CSV_COLUMNS.join(", ")}.</p>
             <p className="mt-1">Required: first_name, last_name. <code>verification</code> is one of independently_verified, official, self_reported, unverified (default unverified). <code>height</code> accepts 5&apos;10&quot;.</p>
@@ -87,7 +109,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             ))}
           </div>
           <div><Label>Recruiting calendar (one per line: start, end, type [contact|evaluation|quiet|dead], note)</Label>
-            <textarea name="calendar" rows={4} className="w-full rounded-lg border border-slate-300 p-2 font-mono text-xs" defaultValue={comp.calendar.map((p) => [p.start, p.end, p.type, p.note ?? ""].join(", ")).join("\n")} placeholder="2026-12-20, 2027-01-03, dead, Winter dead period" />
+            <textarea name="calendar" rows={4} className="w-full rounded-[4px] border border-slate-300 p-2 font-mono text-xs" defaultValue={comp.calendar.map((p) => [p.start, p.end, p.type, p.note ?? ""].join(", ")).join("\n")} placeholder="2026-12-20, 2027-01-03, dead, Winter dead period" />
           </div>
           <label className="flex items-center gap-2"><input type="checkbox" name="requireGuardianConsent" value="1" defaultChecked={comp.requireGuardianConsentForMinors} /> Require recorded parent/guardian consent before messaging athletes under 18 (or of unknown age)</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="campMaterialsAllowed" value="1" defaultChecked={comp.campMaterialsAllowedBeforeContactDate} /> Camp invitations may go out before the permitted contact date (per our compliance office)</label>
