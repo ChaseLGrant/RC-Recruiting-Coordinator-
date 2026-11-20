@@ -59,6 +59,17 @@ npm test
 | **Following / Compare / Schedule** | One-click follow, a board with statuses, side-by-side comparison with sources, and a schedule labeled "participation not confirmed". | `/following`, `/compare`, `/schedule` |
 | **Security** | scrypt password hashing. Session tokens are hashed before storage. Role-based permissions (head coach, assistant, compliance, viewer). Every query is scoped by `org_id`, and tenant isolation is tested. Audit log. | `src/lib/auth.ts`, `src/lib/domain/permissions.ts` |
 
+## Trust & safety guarantees (each one is enforced by a test in `tests/trust.test.ts` or `tests/workflow.test.ts`)
+
+- **No fabricated data.** Real programs start empty. Fictional demo data can't be loaded into a real program.
+- **No talent scores.** RC only reports how an athlete compares to the coach's own standards.
+- **Every number has a source.** The verified badge also says who vouched for it. A program's own import is labeled "per your import" so it's never mistaken for independent verification.
+- **Disagreements are shown, never hidden.** Conflicting values from different sources appear side by side.
+- **Nothing is sent without a coach.** Every message is checked for compliance when approved and again when sent. An opt-out always wins, even over an earlier compliance clearance.
+- **Minors' privacy.** An admin can permanently delete an athlete's records after entering a reason. The deletion is logged without the athlete's details. The public database API can't read anything (RLS is on with no policies).
+- **Only safe links.** Links that aren't plain web addresses are dropped when data is imported, including `javascript:` and `data:` links.
+- **Account security.** Passwords use scrypt hashing. Session tokens are stored hashed. Five failed sign-ins lock the account for 15 minutes, and sign-in timing doesn't reveal whether an account exists. Security headers are on (CSP, no framing, HSTS). Roles, per-program data isolation and an audit log are all covered by tests.
+
 ## Data sources: what is and isn't connected
 
 RC **never scrapes** and never claims to have searched a source it can't access.
@@ -92,6 +103,14 @@ The same SQL runs on SQLite and Postgres. The full workflow test suite passes on
 ```bash
 PG_TEST_URL=postgresql://user@localhost:5432/rc_test npm test
 ```
+
+## Path to "gold standard": what code alone can't finish
+
+1. **Licensed data agreements** with MaxPreps, Perfect Game, PBR and other providers. This is the biggest gap. Until those exist, RC only knows what a program imports.
+2. **An independent security review / penetration test** before any school puts real athlete data in, followed by SOC 2 when you sell to larger athletic departments.
+3. **Legal review** of the privacy policy, terms and data-processing agreement. Minors' data falls under state privacy laws, and FERPA applies if academic records like GPA are involved.
+4. **Compliance-office review** of the outreach workflow at a pilot school.
+5. **A pilot with 2–3 real college staffs** to confirm the matching, Evidence Mode and approvals fit how they actually work.
 
 ## Honest status: not done yet
 

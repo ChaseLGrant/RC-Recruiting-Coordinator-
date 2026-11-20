@@ -6,7 +6,11 @@ import { freshnessLabel, type ResolvedMetric } from "@/lib/domain/provenance";
 import { VERIFICATION_LABEL, type Verification, type CriterionStatus } from "@/lib/domain/types";
 import { Badge, fmtDate, timeAgo } from "./ui";
 
-export function VerificationBadge({ v, badge }: { v: Verification; badge?: boolean }) {
+export function VerificationBadge({ v, badge, sourceKind }: { v: Verification; badge?: boolean; sourceKind?: string }) {
+  // Who vouched matters: a program's own import is attested by that program, not by an independent provider.
+  if (badge && sourceKind === "import")
+    return <Badge tone="green" title="Your program's import labeled this as verified; your staff attested to the file. It was not independently confirmed by RC or a licensed provider.">✓ {VERIFICATION_LABEL[v]} · per your import</Badge>;
+  if (badge && sourceKind === "demo") return <Badge tone="green" title="Fictional demonstration data">✓ {VERIFICATION_LABEL[v]} · demo</Badge>;
   if (badge) return <Badge tone="green" title="Independently verified or officially published, dated, and not contradicted by an equally trusted source">✓ {VERIFICATION_LABEL[v]}</Badge>;
   if (v === "independently_verified" || v === "official") return <Badge tone="blue">{VERIFICATION_LABEL[v]}</Badge>;
   if (v === "self_reported") return <Badge tone="amber">Self-reported</Badge>;
@@ -33,7 +37,7 @@ export function MetricValue({ m, compact }: { m: ResolvedMetric | undefined; com
             <li key={o.id} className={i === 0 ? "" : "border-t border-slate-100 pt-2"}>
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{def.format(o.value)}</span>
-                <VerificationBadge v={o.verification} badge={i === 0 && m.verifiedBadge} />
+                <VerificationBadge v={o.verification} badge={i === 0 && m.verifiedBadge} sourceKind={o.sourceKind} />
               </div>
               <div className="mt-1 text-slate-600">Source: {o.sourceName}</div>
               <div className="text-slate-600">Measured: {o.measuredAt ? fmtDate(o.measuredAt) : "date unknown"}</div>

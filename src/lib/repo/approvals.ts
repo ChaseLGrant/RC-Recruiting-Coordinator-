@@ -7,6 +7,7 @@ import { draftMessage } from "../domain/outreach";
 import { resolveAll } from "../domain/provenance";
 import { audit, authorize, Ctx, getAthlete, getOrg, listObservations, logEvent, setFollow } from "./index";
 import { getEmailProvider } from "../providers/email";
+import { safeUrl } from "../domain/urls";
 
 export type ApprovalKind =
   | "prospect" // new priority prospect recommendation
@@ -293,7 +294,7 @@ export async function approveMessage(ctx: Ctx, messageId: string): Promise<strin
 /** Explicit send. Only possible when the program enabled sending AND an email provider is connected. */
 export async function sendMessage(ctx: Ctx, messageId: string): Promise<string> {
   authorize(ctx, "send_messages");
-  const msg = await ctx.db.get<{ id: string; status: string; to_email: string | null; subject: string; body: string; athlete_id: string }>(
+  const msg = await ctx.db.get<{ id: string; status: string; to_email: string | null; subject: string; body: string; athlete_id: string; kind: MessageKind }>(
     "SELECT * FROM messages WHERE org_id = ? AND id = ?",
     [ctx.orgId, messageId],
   );
@@ -303,7 +304,12 @@ export async function sendMessage(ctx: Ctx, messageId: string): Promise<string> 
   // Re-check at send time: consent or calendars may have changed since approval.
   const athlete = await getAthlete(ctx.db, ctx.orgId, msg.athlete_id);
   if (!athlete) throw new Error("Athlete not found");
-  const elig = checkEligibility("initial", recipientFacts(athlete), org.settings.compliance);
+  const elig = checkEligibility(msg.kind, recipientFacts(athlete), org.settings.compliance);
+  // Hard blocks (opt-out, denied consent, no address) can never be overridden — not even by an earlier compliance clearance.
+  if (elig.status === "blocked") {
+    await ctx.db.run("UPDATE messages SET status = 'blocked', status_reason = ?, updated_at = ? WHERE id = ?", [elig.reasons.join("; "), nowIso(), messageId]);
+    throw new Error(`Not sent: ${elig.reasons.join("; ")}`);
+  }
   if (elig.status !== "eligible" && !(await ctx.db.get("SELECT id FROM approvals WHERE org_id = ? AND dedupe_key = ? AND status = 'approved'", [ctx.orgId, `compliance:${messageId}`]))) {
     throw new Error(`Not sent: ${elig.reasons.join("; ")}`);
   }
@@ -324,6 +330,9 @@ export async function sendMessage(ctx: Ctx, messageId: string): Promise<string> 
 
 export async function markMessageSentManually(ctx: Ctx, messageId: string) {
   authorize(ctx, "send_messages");
+  const m = await ctx.db.get<{ athlete_id: string }>("SELECT athlete_id FROM messages WHERE org_id = ? AND id = ?", [ctx.orgId, messageId]);
+  const a = m ? await getAthlete(ctx.db, ctx.orgId, m.athlete_id) : null;
+  if (a?.optedOut) throw new Error("This athlete has opted out of communications.");
   const r = await ctx.db.run("UPDATE messages SET status = 'sent', sent_at = ?, status_reason = 'Sent by coach from own email client', updated_at = ? WHERE org_id = ? AND id = ? AND status = 'approved'", [
     nowIso(), nowIso(), ctx.orgId, messageId,
   ]);
@@ -370,6 +379,22 @@ export async function mergeAthletes(ctx: Ctx, keepId: string, dropId: string) {
   await audit(ctx, "merge_athletes", "athlete", keepId, { merged: dropId });
 }
 
+/** Permanently removes an athlete and every record about them (privacy request / data removal). */
+export async function deleteAthleteData(ctx: Ctx, athleteId: string, reason: string) {
+  authorize(ctx, "manage_settings");
+  if (!reason.trim()) throw new Error("Record a reason for the deletion (e.g. family request).");
+  const a = await getAthlete(ctx.db, ctx.orgId, athleteId);
+  if (!a) throw new Error("Athlete not found");
+  await ctx.db.tx(async (db) => {
+    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events"]) {
+      await db.run(`DELETE FROM ${t} WHERE org_id = ? AND athlete_id = ?`, [ctx.orgId, athleteId]);
+    }
+    await db.run("DELETE FROM athletes WHERE org_id = ? AND id = ?", [ctx.orgId, athleteId]);
+    // The audit entry records THAT data was deleted and why — but not the athlete's personal details.
+    await audit({ ...ctx, db }, "delete_athlete_data", "athlete", athleteId, { reason: reason.trim().slice(0, 200) });
+  });
+}
+
 // ---------- camps ----------
 
 export interface Camp {
@@ -394,6 +419,8 @@ export async function listCamps(db: Db, orgId: string): Promise<Camp[]> {
 
 export async function createCamp(ctx: Ctx, c: Omit<Camp, "id">): Promise<string> {
   authorize(ctx, "manage_camps");
+  if (c.registrationUrl && !safeUrl(c.registrationUrl)) throw new Error("Registration link must be a normal https:// web address.");
+  c = { ...c, registrationUrl: safeUrl(c.registrationUrl) };
   const id = newId();
   await ctx.db.run("INSERT INTO camps (id, org_id, name, starts_at, location, registration_url, profile_id, created_at) VALUES (?,?,?,?,?,?,?,?)", [
     id, ctx.orgId, c.name, c.startsAt, c.location, c.registrationUrl, c.profileId, nowIso(),

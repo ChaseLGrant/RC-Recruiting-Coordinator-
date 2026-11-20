@@ -5,6 +5,7 @@
 
 import { Db, newId, nowIso } from "./db";
 import { locateAthlete, normalizeState } from "./domain/geo";
+import { safeUrl } from "./domain/urls";
 import { decideIdentity, normalizeName } from "./domain/identity";
 import { metricDef } from "./domain/metrics";
 import { isVerifiedLevel, resolveMetric } from "./domain/provenance";
@@ -208,7 +209,7 @@ async function ingestMetrics(db: Db, orgId: string, source: Source, athleteId: s
     } else {
       await db.run(
         "INSERT INTO metric_observations (id, org_id, athlete_id, source_id, metric_key, value, unit, measured_at, checked_at, verification, source_url, event_name, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [newId(), orgId, athleteId, source.id, m.key, m.value, def.unit, m.measuredAt, now, m.verification, m.sourceUrl ?? null, m.eventName ?? null, now],
+        [newId(), orgId, athleteId, source.id, m.key, m.value, def.unit, m.measuredAt, now, m.verification, safeUrl(m.sourceUrl), m.eventName ?? null, now],
       );
     }
     stats.metricsAdded++;
@@ -232,8 +233,10 @@ async function ingestMetrics(db: Db, orgId: string, source: Source, athleteId: s
 }
 
 async function ingestFilm(db: Db, orgId: string, source: Source, athleteId: string, rec: ProviderAthleteRecord, stats: IngestStats) {
-  for (const f of rec.film ?? []) {
-    if (!/^https?:\/\//i.test(f.url)) continue;
+  for (let f of rec.film ?? []) {
+    const url = safeUrl(f.url);
+    if (!url) continue;
+    f = { ...f, url };
     const existing = await db.get<{ id: string }>("SELECT id FROM film_links WHERE org_id = ? AND athlete_id = ? AND url = ?", [orgId, athleteId, f.url]);
     if (existing) {
       await db.run("UPDATE film_links SET checked_at = ? WHERE id = ?", [nowIso(), existing.id]);
@@ -276,7 +279,7 @@ async function ingestGames(db: Db, orgId: string, source: Source, athleteId: str
     const geo = locateAthlete({ city: g.city, state: normalizeState(g.state) });
     await db.run(
       "INSERT INTO games (id, org_id, athlete_id, source_id, external_id, team_name, opponent, venue, city, state, lat, lng, starts_at, status, participation_confirmed, source_url, checked_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [newId(), orgId, athleteId, source.id, g.externalId ?? null, g.teamName ?? rec.team ?? null, g.opponent ?? null, g.venue ?? null, g.city ?? null, normalizeState(g.state), geo?.lat ?? null, geo?.lng ?? null, startsAt, status, g.participationConfirmed ? 1 : 0, g.sourceUrl ?? null, nowIso()],
+      [newId(), orgId, athleteId, source.id, g.externalId ?? null, g.teamName ?? rec.team ?? null, g.opponent ?? null, g.venue ?? null, g.city ?? null, normalizeState(g.state), geo?.lat ?? null, geo?.lng ?? null, startsAt, status, g.participationConfirmed ? 1 : 0, safeUrl(g.sourceUrl), nowIso()],
     );
     stats.gamesAdded++;
     if (new Date(startsAt) > new Date()) {

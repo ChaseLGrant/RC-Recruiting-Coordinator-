@@ -7,7 +7,8 @@ import { METRICS, metricDef } from "@/lib/domain/metrics";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
 import { freshnessLabel } from "@/lib/domain/provenance";
 import { getEmailProvider } from "@/lib/providers/email";
-import { addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { can } from "@/lib/domain/permissions";
+import { deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
 import { Badge, Button, Card, Empty, Flash, Input, Label, Select, fmtDate, fmtDateTime, timeAgo } from "@/components/ui";
 import { DemoTag, MetricValue, VerificationBadge } from "@/components/evidence";
 
@@ -18,7 +19,7 @@ const MISSING_LABEL: Record<string, string> = {
 export default async function AthletePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ flash?: string; error?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
-  const { ctx, org } = await requireSession();
+  const { ctx, org, user } = await requireSession();
   const ev = await getEvidence(ctx.db, ctx.orgId, id);
   if (!ev) notFound();
   const { athlete: a, metrics } = ev;
@@ -86,7 +87,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                         <tr key={k} className={m.conflict ? "bg-rose-50/50" : ""}>
                           <td className="py-2 pr-3 font-medium">{metricDef(k).label}{m.observations.length > 1 && <div className="text-xs font-normal text-slate-500">{m.observations.length} observations</div>}</td>
                           <td className="pr-3"><MetricValue m={m} /></td>
-                          <td className="pr-3"><VerificationBadge v={p.verification} badge={m.verifiedBadge} /></td>
+                          <td className="pr-3"><VerificationBadge v={p.verification} badge={m.verifiedBadge} sourceKind={p.sourceKind} /></td>
                           <td className="pr-3 text-xs">{p.sourceName}{(p as typeof p & { eventName?: string | null }).eventName ? <div className="text-slate-500">{(p as typeof p & { eventName?: string | null }).eventName}</div> : null}</td>
                           <td className="pr-3 text-xs">{p.measuredAt ? fmtDate(p.measuredAt) : <span className="text-amber-700">unknown</span>}</td>
                           <td className="pr-3 text-xs">{timeAgo(p.checkedAt)} <span className={freshnessLabel(p.checkedAt) === "stale" ? "text-rose-600" : "text-slate-400"}>({freshnessLabel(p.checkedAt)})</span></td>
@@ -204,6 +205,18 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
               <p className="text-xs text-slate-500">Used by compliance checks. Opted-out athletes are never contacted.</p>
             </form>
           </Card>
+
+          {can(user.role, "manage_settings") && (
+            <Card title="Privacy: remove this athlete">
+              <form action={deleteAthleteAction} className="space-y-2 text-sm">
+                <input type="hidden" name="athleteId" value={a.id} />
+                <p className="text-xs text-slate-600">Permanently deletes this athlete and every measurement, note, message and schedule record about them (for example, a family&apos;s removal request). This cannot be undone. The audit log records that a deletion happened and why, but not the athlete&apos;s details.</p>
+                <Input name="reason" placeholder="Reason (e.g. parent requested removal)" required />
+                <Input name="confirm" placeholder="Type DELETE to confirm" required />
+                <Button variant="danger">Permanently delete</Button>
+              </form>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -47,11 +47,33 @@ export async function destroySession(db: Db, token: string | undefined) {
   if (token) await db.run("DELETE FROM sessions WHERE id = ?", [tokenHash(token)]);
 }
 
-export async function authenticate(db: Db, email: string, password: string): Promise<User | null> {
-  const row = await db.get<Record<string, unknown>>("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", [email.trim()]);
-  if (!row || !verifyPassword(password, String(row.password_hash))) return null;
-  return userFromRow(row);
+export const MAX_FAILED_LOGINS = 5;
+export const LOCKOUT_MINUTES = 15;
+
+export class LockedOutError extends Error {
+  constructor() {
+    super(`Too many failed sign-in attempts. For your program's security, this account is locked for ${LOCKOUT_MINUTES} minutes.`);
+    this.name = "LockedOutError";
+  }
 }
+
+/** Verifies credentials with brute-force protection: 5 failures in 15 minutes locks the account temporarily. */
+export async function authenticate(db: Db, email: string, password: string): Promise<User | null> {
+  const key = email.trim().toLowerCase();
+  const since = new Date(Date.now() - LOCKOUT_MINUTES * 60_000).toISOString();
+  const recent = await db.get<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM login_attempts WHERE email = ? AND success = 0 AND created_at > ? AND created_at > COALESCE((SELECT MAX(created_at) FROM login_attempts WHERE email = ? AND success = 1), '')",
+    [key, since, key],
+  );
+  if (Number(recent?.n ?? 0) >= MAX_FAILED_LOGINS) throw new LockedOutError();
+  const row = await db.get<Record<string, unknown>>("SELECT * FROM users WHERE LOWER(email) = ?", [key]);
+  // Always run scrypt so response time doesn't reveal whether an account exists.
+  const ok = row ? verifyPassword(password, String(row.password_hash)) : (verifyPassword(password, DUMMY_HASH), false);
+  await db.run("INSERT INTO login_attempts (id, email, success, created_at) VALUES (?,?,?,?)", [newId(), key, ok ? 1 : 0, nowIso()]);
+  return ok && row ? userFromRow(row) : null;
+}
+
+const DUMMY_HASH = hashPassword("rc-timing-equalizer");
 
 export async function createUser(db: Db, orgId: string, u: { email: string; name: string; title?: string | null; role: Role; password: string }): Promise<string> {
   if (u.password.length < 8) throw new Error("Password must be at least 8 characters.");

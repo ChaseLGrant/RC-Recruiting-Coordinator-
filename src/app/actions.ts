@@ -13,7 +13,7 @@ import {
   type MissionActions,
 } from "@/lib/repo";
 import {
-  createCamp, decideApproval, markMessageSentManually, prepareDraft, sendMessage, setCampTargetStatus, type Decision,
+  deleteAthleteData, createCamp, decideApproval, markMessageSentManually, prepareDraft, sendMessage, setCampTargetStatus, type Decision,
 } from "@/lib/repo/approvals";
 import { runMission, syncSources, describeIngest } from "@/lib/jobs/runner";
 import { ingestRecords } from "@/lib/ingest";
@@ -49,7 +49,12 @@ function withFlash(path: string, msg: string, kind: "ok" | "err" = "ok") {
 
 export async function loginAction(fd: FormData) {
   const db = await getDb();
-  const user = await authenticate(db, str(fd, "email"), str(fd, "password"));
+  let user;
+  try {
+    user = await authenticate(db, str(fd, "email"), str(fd, "password"));
+  } catch (e) {
+    redirect("/login?error=" + encodeURIComponent(e instanceof Error ? e.message : "Sign-in failed."));
+  }
   if (!user) redirect("/login?error=" + encodeURIComponent("Email or password is incorrect."));
   await startSession(user.id);
   redirect("/");
@@ -407,4 +412,17 @@ export async function inviteUserAction(fd: FormData) {
   }
   revalidatePath("/settings");
   redirect(withFlash("/settings#team", "Staff member added. Share their temporary password with them directly."));
+}
+
+export async function deleteAthleteAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const id = str(fd, "athleteId");
+  if (str(fd, "confirm").toUpperCase() !== "DELETE") redirect(withFlash(`/athletes/${id}`, 'Type DELETE to confirm permanent removal.', "err"));
+  try {
+    await deleteAthleteData(ctx, id, str(fd, "reason"));
+  } catch (e) {
+    redirect(withFlash(`/athletes/${id}`, e instanceof Error ? e.message : "Failed", "err"));
+  }
+  revalidatePath("/", "layout");
+  redirect(withFlash("/following", "Athlete and all related records were permanently deleted. The deletion is recorded in the audit log."));
 }
