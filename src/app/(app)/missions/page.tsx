@@ -16,9 +16,9 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <PageHeader title="Missions & recruiting profiles" subtitle="Your saved standards and the recurring work RC does on them. The worker process runs due missions automatically." />
+      <PageHeader title="Saved searches" subtitle="Searches RC keeps running for you, and the standards behind them." />
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Recurring missions">
+        <Card title="Running for you">
           {missions.length === 0 ? <Empty>No missions. Run a search in <Link href="/discover" className="underline">Discover</Link> and save it as a recurring mission.</Empty> : (
             <ul className="space-y-3">
               {missions.map((m) => (
@@ -42,7 +42,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
             </ul>
           )}
         </Card>
-        <Card title="Saved recruiting profiles">
+        <Card title="Your standards">
           {profiles.length === 0 ? <Empty>No saved profiles yet.</Empty> : (
             <ul className="space-y-3">
               {profiles.map((p) => (
@@ -60,7 +60,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
           )}
         </Card>
       </div>
-      <Card title="Background job history" className="mt-6">
+      <Card title="Recent runs" className="mt-6">
         {runs.length === 0 ? <Empty>No runs yet.</Empty> : (
           <table className="min-w-full text-sm">
             <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Started</th><th>Mission</th><th>Trigger</th><th>Status</th><th>Result</th></tr></thead>

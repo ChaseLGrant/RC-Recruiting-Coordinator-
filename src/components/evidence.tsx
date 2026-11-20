@@ -23,11 +23,11 @@ export function MetricValue({ m, compact }: { m: ResolvedMetric | undefined; com
   return (
     <details className="group relative inline-block">
       <summary className="inline-flex items-center gap-1 rounded px-1 hover:bg-slate-100">
-        <span className={m.conflict ? "font-semibold text-rose-700" : m.verifiedBadge ? "font-semibold text-emerald-800" : m.primary.verification === "self_reported" ? "font-semibold text-amber-800" : "font-semibold"}>
+        <span className={m.conflict ? "font-semibold text-amber-700" : m.verifiedBadge ? "font-semibold text-emerald-800" : m.primary.verification === "self_reported" ? "font-semibold text-amber-800" : "font-semibold"}>
           {def.format(m.primary.value)}
         </span>
         {m.verifiedBadge && <span className="text-emerald-600" aria-label="verified">✓</span>}
-        {m.conflict && <span className="text-rose-600" aria-label="conflict">⚠</span>}
+        {m.conflict && <span className="text-amber-600" aria-label="sources disagree" title="Sources disagree. Tap to see both.">⚠</span>}
         {!compact && m.primary.verification === "self_reported" && <span className="text-[10px] uppercase text-amber-700">self-rep.</span>}
       </summary>
       <div className="absolute left-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white p-3 text-left text-xs shadow-lg">

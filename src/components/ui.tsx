@@ -7,14 +7,14 @@ export function cx(...c: Array<string | false | null | undefined>) {
 
 export function Card({ children, className, title, action, id }: { children: ReactNode; className?: string; title?: ReactNode; action?: ReactNode; id?: string }) {
   return (
-    <section id={id} className={cx("rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
+    <section id={id} className={cx("rounded-2xl bg-white shadow-[var(--shadow-soft)] ring-1 ring-slate-900/5", className)}>
       {(title || action) && (
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between gap-3 px-5 pt-5">
+          <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
           {action}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -30,7 +30,7 @@ const BADGE = {
 
 export function Badge({ children, tone = "slate", title }: { children: ReactNode; tone?: keyof typeof BADGE; title?: string }) {
   return (
-    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset", BADGE[tone])}>
+    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset", BADGE[tone])}>
       {children}
     </span>
   );
@@ -43,15 +43,15 @@ export function Button({
   name?: string; value?: string; className?: string; formAction?: (fd: FormData) => void | Promise<void>; disabled?: boolean; title?: string;
 }) {
   const styles = {
-    primary: "bg-brand-600 text-white hover:bg-brand-700",
-    success: "bg-emerald-600 text-white hover:bg-emerald-700",
-    secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-slate-50",
+    primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700",
+    success: "bg-brand-600 text-white shadow-sm hover:bg-brand-700",
+    secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50",
     ghost: "text-slate-600 hover:bg-slate-100",
     danger: "bg-white text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50",
   };
   return (
     <button type={type} name={name} value={value} formAction={formAction} disabled={disabled} title={title}
-      className={cx("inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-50", styles[variant], className)}>
+      className={cx("inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition disabled:opacity-50", styles[variant], className)}>
       {children}
     </button>
   );
@@ -59,19 +59,19 @@ export function Button({
 
 export function LinkButton({ href, children, variant = "secondary", className }: { href: string; children: ReactNode; variant?: "primary" | "secondary"; className?: string }) {
   return (
-    <Link href={href} className={cx("inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
-      variant === "primary" ? "bg-brand-600 text-white hover:bg-brand-700" : "bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-slate-50", className)}>
+    <Link href={href} className={cx("inline-flex min-h-9 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold",
+      variant === "primary" ? "bg-brand-600 text-white hover:bg-brand-700" : "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50", className)}>
       {children}
     </Link>
   );
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cx("w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100", props.className)} />;
+  return <input {...props} className={cx("w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100", props.className)} />;
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cx("rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm shadow-sm focus:border-brand-600 focus:outline-none", props.className)} />;
+  return <select {...props} className={cx("rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none", props.className)} />;
 }
 
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
@@ -81,22 +81,22 @@ export function Label({ children, className }: { children: ReactNode; className?
 export function Flash({ flash, error }: { flash?: string; error?: string }) {
   if (!flash && !error) return null;
   return (
-    <div className={cx("mb-4 rounded-lg px-4 py-2.5 text-sm ring-1 ring-inset", error ? "bg-rose-50 text-rose-800 ring-rose-200" : "bg-emerald-50 text-emerald-800 ring-emerald-200")}>
+    <div role="status" className={cx("mb-5 rounded-2xl px-4 py-3 text-sm ring-1 ring-inset", error ? "bg-rose-50 text-rose-800 ring-rose-200" : "bg-emerald-50 text-emerald-800 ring-emerald-200")}>
       {error ?? flash}
     </div>
   );
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">{children}</div>;
+  return <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{children}</div>;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1 max-w-2xl text-[15px] text-slate-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -121,4 +121,9 @@ export function timeAgo(iso: string | null | undefined) {
   if (s < 3600) return `${Math.floor(s / 60)} min ago`;
   if (s < 86400) return `${Math.floor(s / 3600)} hr ago`;
   return `${Math.floor(s / 86400)} days ago`;
+}
+
+export function Avatar({ first, last, size = "md" }: { first: string; last: string; size?: "md" | "lg" }) {
+  const sz = size === "lg" ? "h-16 w-16 text-xl" : "h-11 w-11 text-sm";
+  return <span className={cx("grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-900 to-brand-600 font-semibold text-white", sz)} aria-hidden>{(first[0] ?? "") + (last[0] ?? "")}</span>;
 }

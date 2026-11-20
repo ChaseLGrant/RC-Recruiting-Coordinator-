@@ -148,8 +148,8 @@ async function executeMission(db: Db, orgId: string, mission: Mission, runId: st
       });
       await createApproval(db, orgId, {
         kind: "prospect",
-        title: `${a.firstName} ${a.lastName} meets your "${profile.name}" standards`,
-        summary: `${m.summary}.${m.distanceMi != null ? ` ${Math.round(m.distanceMi)} mi from ${c.location.center?.label}.` : ""}${gaps.length ? ` Not yet confirmed: ${gaps.join("; ")}.` : ""} Approve to add to Following.`,
+        title: `${a.firstName} ${a.lastName} · ${a.primaryPosition ?? "?"} · Class of ${a.gradYear ?? "?"}`,
+        summary: `Fits ${m.matched === m.total ? `all ${m.total}` : `${m.matched} of ${m.total}`} of your "${profile.name}" standards${m.distanceMi != null ? `, ${Math.round(m.distanceMi)} miles from campus` : ""}.${gaps.length ? ` Still to confirm: ${gaps.map((g) => g.replace(/: (missing|unverified|conflict|fail)$/, "")).join(", ")}.` : ""}`,
         payload: { missionId: mission.id, match: m },
         dedupeKey: `prospect:${mission.id}:${a.id}`,
         athleteId: a.id,

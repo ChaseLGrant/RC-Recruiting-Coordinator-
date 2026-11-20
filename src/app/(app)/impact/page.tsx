@@ -16,7 +16,7 @@ export default async function ImpactPage({ searchParams }: { searchParams: Promi
   return (
     <div>
       <Flash flash={sp.flash} />
-      <PageHeader title="Recruiting time saved" subtitle="Counts are measured from RC's activity log. Time saved is an estimate based on the assumptions below, which you control." actions={
+      <PageHeader title="Time RC saved you" subtitle="Counts are measured from RC's activity log. Time saved is an estimate based on the assumptions below, which you control." actions={
         <div className="flex gap-2 text-sm">{[["7", "7 days"], ["30", "30 days"], ["all", "All time"]].map(([v, l]) => <Link key={v} href={`/impact?range=${v}`} className={`rounded-full px-3 py-1 ${range === v ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>{l}</Link>)}</div>
       } />
       <div className="mb-6 grid gap-4 md:grid-cols-3">

@@ -9,7 +9,7 @@ import { freshnessLabel } from "@/lib/domain/provenance";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
 import { deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
-import { Badge, Button, Card, Empty, Flash, Input, Label, Select, fmtDate, fmtDateTime, timeAgo } from "@/components/ui";
+import { Avatar, Badge, Button, Card, Empty, Flash, Input, Label, Select, fmtDate, fmtDateTime, timeAgo } from "@/components/ui";
 import { DemoTag, MetricValue, VerificationBadge } from "@/components/evidence";
 
 const MISSING_LABEL: Record<string, string> = {
@@ -32,49 +32,71 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{a.firstName} {a.lastName}</h1>
-            {a.isDemo && <DemoTag />}
-            <Badge tone={idConf === "high" ? "green" : idConf === "medium" ? "amber" : "red"} title="How confident RC is that all linked records describe this one person">Identity confidence: {idConf}</Badge>
+      <section className="mb-6 rounded-3xl bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-slate-900/5 sm:p-7">
+        <div className="flex flex-wrap items-start gap-4">
+          <Avatar first={a.firstName} last={a.lastName} size="lg" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{a.firstName} {a.lastName}</h1>
+              {a.isDemo && <DemoTag />}
+              {idConf !== "high" && <Badge tone="amber" title="RC isn't fully sure every linked record is this same player">Check identity</Badge>}
+            </div>
+            <p className="mt-1 text-[15px] text-slate-600">
+              {[a.primaryPosition && `${a.primaryPosition}${a.secondaryPosition ? ` / ${a.secondaryPosition}` : ""}`, a.gradYear && `Class of ${a.gradYear}`, a.highSchool, [a.city, a.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
+            </p>
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              {a.commitmentStatus === "unknown" ? <Badge>Commitment unknown</Badge> : a.commitmentStatus === "committed" ? <Badge tone="red">Committed</Badge> : <Badge tone="green">Uncommitted{a.commitmentVerified ? " · confirmed" : " · not confirmed"}</Badge>}
+              {ev.film.length > 0 && <a href="#film" className="font-medium text-brand-700 hover:underline">Watch film ({ev.film.length})</a>}
+              {upcoming.length > 0 && <a href="#games" className="font-medium text-brand-700 hover:underline">Next game {fmtDate(upcoming[0].starts_at, { month: "short", day: "numeric" })}</a>}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-slate-600">
-            {a.sport} · {a.primaryPosition ?? "Position unknown"}{a.secondaryPosition ? ` / ${a.secondaryPosition}` : ""} · Class of {a.gradYear ?? "unknown"} · {a.highSchool ?? "School unknown"}{a.team ? ` · ${a.team}` : ""} · {[a.city, a.state].filter(Boolean).join(", ") || "Location unknown"}
-            {a.geoPrecision && <span className="text-xs text-slate-400"> (located by {a.geoPrecision} centroid)</span>}
-          </p>
-          <p className="mt-1 text-sm">
-            Commitment:{" "}
-            {a.commitmentStatus === "unknown" ? <Badge>Unknown</Badge> : (
-              <><Badge tone={a.commitmentStatus === "committed" ? "red" : "green"}>{a.commitmentStatus}</Badge> {a.commitmentVerified ? <Badge tone="green">verified</Badge> : <Badge tone="amber">not verified</Badge>} <span className="text-xs text-slate-500">{ev.commitmentSource ? `per ${ev.commitmentSource}` : ""}</span></>
-            )}
-          </p>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <form action={toggleFollowAction}>
+              <input type="hidden" name="athleteId" value={a.id} />
+              <input type="hidden" name="follow" value={ev.following ? "0" : "1"} />
+              <input type="hidden" name="returnTo" value={here} />
+              <Button variant={ev.following ? "secondary" : "primary"}>{ev.following ? "✓ In My Players" : "+ Add to My Players"}</Button>
+            </form>
+            <details className="relative">
+              <summary className="inline-flex min-h-9 items-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Contact…</summary>
+              <form action={draftOutreachAction} className="absolute right-0 z-30 mt-2 w-72 space-y-2 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200">
+                <input type="hidden" name="athleteId" value={a.id} />
+                <Label>What should RC draft?</Label>
+                <Select name="kind" defaultValue="initial" className="w-full">
+                  <option value="initial">Introduce our program</option>
+                  <option value="follow_up">Follow up</option>
+                  <option value="film_request">Ask for updated film</option>
+                  <option value="schedule_request">Ask for their schedule</option>
+                  {camps.length > 0 && <option value="camp_invite">Invite to camp</option>}
+                </Select>
+                {camps.length > 0 && <Select name="campId" className="w-full">{camps.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}
+                <Button className="w-full">Draft it for my review</Button>
+                <p className="text-xs text-slate-500">Nothing is sent. The draft waits in &ldquo;Needs your OK&rdquo;.</p>
+              </form>
+            </details>
+          </div>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
-          <form action={toggleFollowAction}>
-            <input type="hidden" name="athleteId" value={a.id} />
-            <input type="hidden" name="follow" value={ev.following ? "0" : "1"} />
-            <input type="hidden" name="returnTo" value={here} />
-            <Button variant={ev.following ? "secondary" : "primary"}>{ev.following ? "✓ Following" : "+ Follow"}</Button>
-          </form>
-          <form action={draftOutreachAction} className="flex gap-1">
-            <input type="hidden" name="athleteId" value={a.id} />
-            <Select name="kind" defaultValue="initial">
-              <option value="initial">Initial outreach</option>
-              <option value="follow_up">Follow-up</option>
-              <option value="film_request">Request updated film</option>
-              <option value="schedule_request">Request schedule</option>
-              {camps.length > 0 && <option value="camp_invite">Camp invitation</option>}
-            </Select>
-            {camps.length > 0 && <Select name="campId">{camps.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}
-            <Button variant="secondary">Prepare draft</Button>
-          </form>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:[grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+          {["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec", "inf_velo_mph", "fb_velo_mph", "pop_time_sec", "of_velo_mph", "gpa"].filter((k) => metrics.has(k) || ["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"].includes(k)).slice(0, 6).filter((_, i, arr) => i < arr.length - (arr.length % 2)).map((k) => {
+            const m = metrics.get(k);
+            return (
+              <div key={k} className="rounded-2xl bg-slate-50 p-3">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{metricDef(k).label}</div>
+                <div className="mt-1 text-lg"><MetricValue m={m} /></div>
+                <div className="text-[11px] text-slate-500">{m ? (m.verifiedBadge ? "Verified" : m.primary.verification === "self_reported" ? "Self-reported" : m.conflict ? "Sources disagree" : "Not verified") : "No data yet"}</div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+        {ev.conflicts.length > 0 && (
+          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">Sources disagree on {ev.conflicts.map((c) => metricDef(c.key).label.toLowerCase()).join(", ")}. RC shows both numbers instead of picking one. Tap the number to compare.</p>
+        )}
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card title="Evidence: every measurement and where it came from">
+          <Card title="Every number and where it came from">
             {metrics.size === 0 ? <Empty>No measurements on record from any connected source.</Empty> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -124,7 +146,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
             )}
           </Card>
 
-          <Card title="Upcoming games">
+          <Card title="Upcoming games" id="games">
             {upcoming.length === 0 ? <Empty>No upcoming games found in connected sources.</Empty> : (
               <ul className="divide-y divide-slate-100 text-sm">
                 {upcoming.map((g) => (

@@ -17,7 +17,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <PageHeader title="Needs Your Approval" subtitle="Nothing RC prepares is acted on until you decide. Outreach is never sent automatically." />
+      <PageHeader title="Needs your OK" subtitle="Nothing RC prepares happens until you decide. Messages are never sent automatically." />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         <Link href="/approvals" className={`rounded-full px-3 py-1 ${!sp.kind && !decided ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>All open</Link>
         {!decided && kinds.map((k) => (
