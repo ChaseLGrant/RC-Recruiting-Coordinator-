@@ -6,6 +6,7 @@ import { runDueMissions } from "@/lib/jobs/runner";
 import { runDuePageChecks } from "@/lib/watch/runner";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;

@@ -39,10 +39,11 @@ function back(fd: FormData, fallback = "/") {
 }
 
 function withFlash(path: string, msg: string, kind: "ok" | "err" = "ok") {
-  const [base, query = ""] = path.split("?");
+  const [beforeHash, hash = ""] = path.split("#");
+  const [base, query = ""] = beforeHash.split("?");
   const qs = new URLSearchParams(query);
   qs.set(kind === "ok" ? "flash" : "error", msg);
-  return `${base}?${qs.toString()}`;
+  return `${base}?${qs.toString()}${hash ? `#${hash}` : ""}`;
 }
 
 // ---------- auth ----------
@@ -222,6 +223,8 @@ export async function updateContactAction(fd: FormData) {
   await updateAthleteContact(ctx, str(fd, "athleteId"), {
     email: str(fd, "email") || null,
     guardianEmail: str(fd, "guardianEmail") || null,
+    phone: str(fd, "phone") || null,
+    xHandle: str(fd, "xHandle") || null,
     contactConsent: str(fd, "contactConsent") || "unknown",
     isMinor: minor === "" ? null : minor === "1",
     optedOut: Boolean(str(fd, "optedOut")),
@@ -535,4 +538,85 @@ export async function confirmListAction(fd: FormData) {
   }
   revalidatePath("/", "layout");
   redirect(withFlash("/following", msg));
+}
+
+// ---------- shared staff login ----------
+
+export async function pickStaffAction(fd: FormData) {
+  const db = await getDb();
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) redirect("/login");
+  const { setActingUser } = await import("@/lib/auth");
+  try {
+    await setActingUser(db, token, str(fd, "staffId"));
+  } catch (e) {
+    redirect("/who?error=" + encodeURIComponent(e instanceof Error ? e.message : "Try again"));
+  }
+  redirect("/");
+}
+
+export async function switchStaffAction() {
+  const db = await getDb();
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) redirect("/login");
+  const { clearActingUser } = await import("@/lib/auth");
+  await clearActingUser(db, token);
+  redirect("/who");
+}
+
+export async function addStaffProfileAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  authorize(ctx, "manage_users");
+  const { addStaffProfile } = await import("@/lib/auth");
+  try {
+    const id = await addStaffProfile(ctx.db, ctx.orgId, { name: str(fd, "name"), title: str(fd, "title") || null, role: (str(fd, "role") || "assistant_coach") as Role });
+    await audit(ctx, "add_staff_profile", "user", id, { role: str(fd, "role") });
+  } catch (e) {
+    redirect(withFlash("/settings#team", e instanceof Error ? e.message : "Failed", "err"));
+  }
+  revalidatePath("/settings");
+  redirect(withFlash("/settings#team", "Staff member added. They sign in with the staff login and tap their name."));
+}
+
+export async function setSharedLoginAction(fd: FormData) {
+  const { ctx, org } = await requireSession();
+  authorize(ctx, "manage_users");
+  const { setSharedLogin } = await import("@/lib/auth");
+  try {
+    await setSharedLogin(ctx.db, ctx.orgId, str(fd, "email"), str(fd, "password"), org.settings.branding.teamName ?? org.name);
+    await audit(ctx, "set_shared_login", "org", ctx.orgId);
+  } catch (e) {
+    redirect(withFlash("/settings#team", e instanceof Error ? e.message : "Failed", "err"));
+  }
+  revalidatePath("/settings");
+  redirect(withFlash("/settings#team", "Staff login saved. Share the email and password with your staff."));
+}
+
+// ---------- contact log ----------
+
+export async function logContactAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const athleteId = str(fd, "athleteId");
+  const back = str(fd, "returnTo") || `/athletes/${athleteId}`;
+  try {
+    const { logContact, CONTACT_KINDS } = await import("@/lib/repo/contacts");
+    const kind = str(fd, "kind");
+    await logContact(ctx, athleteId, { kind, occurredAt: str(fd, "date") || null, note: str(fd, "note") || null });
+    revalidatePath("/", "layout");
+    redirect(withFlash(back, `Logged: ${CONTACT_KINDS[kind as keyof typeof CONTACT_KINDS]?.label ?? kind}.`));
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    redirect(withFlash(back, e instanceof Error ? e.message : "Failed", "err"));
+  }
+}
+
+export async function deleteContactAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  const { deleteContact } = await import("@/lib/repo/contacts");
+  try {
+    await deleteContact(ctx, str(fd, "contactId"));
+  } catch (e) {
+    redirect(withFlash(`/athletes/${str(fd, "athleteId")}`, e instanceof Error ? e.message : "Failed", "err"));
+  }
+  revalidatePath(`/athletes/${str(fd, "athleteId")}`);
 }

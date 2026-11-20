@@ -60,7 +60,8 @@ describe("importing an Excel recruiting board end to end", () => {
     expect(status[athletes.find((a) => a.firstName === "Eli")!.id]).toBe("not_a_fit");
     const notes = await listNotes(db, p.orgId, jordan.id);
     expect(notes[0].body).toContain("Quick hands");
-    expect(notes[0].body).toContain("760-555-0101");
+    expect(notes[0].body).not.toContain("760-555-0101"); // phone goes to the profile, not the notes
+    expect(jordan.phone).toBe("(760) 555-0101");
     const ev = (await getEvidence(db, p.orgId, jordan.id))!;
     expect(ev.metrics.get("height_in")!.primary.value).toBe(71);
     expect(ev.metrics.get("exit_velo_mph")!.primary.sourceName).toBe("2027 Board (your list)");

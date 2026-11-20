@@ -7,7 +7,7 @@ import { getAiProvider } from "@/lib/ai/provider";
 import { listTrackedPages } from "@/lib/watch/runner";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -16,6 +16,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const sources = await listSources(ctx.db, ctx.orgId);
   const tracked = await listTrackedPages(ctx.db, ctx.orgId);
   const users = await listUsers(ctx.db, ctx.orgId);
+  const sharedLogin = await ctx.db.get<{ email: string }>("SELECT email FROM users WHERE org_id = ? AND is_shared = 1", [ctx.orgId]);
   const audit = can(user.role, "view_audit") ? await listAudit(ctx, 60) : [];
   const comp = org.settings.compliance;
   const yr = new Date().getFullYear();
@@ -141,19 +142,46 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </form>
       </Card>
 
-      <Card title="Recruiting staff & roles" id="team">
+      <Card title="Staff & login" id="team">
+        <div className="mb-5 border-l-4 border-[var(--team-primary)] bg-slate-50 p-4 text-sm">
+          <div className="font-semibold">One login for the whole staff</div>
+          <p className="mt-1 text-slate-600">Everyone signs in with the same staff email and password, then taps their name. Notes and contacts are still credited to the right coach.{sharedLogin ? <> Current staff login: <b>{sharedLogin.email}</b>.</> : " Not set up yet."}</p>
+          {can(user.role, "manage_users") && (
+            <form action={setSharedLoginAction} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <Input name="email" type="email" placeholder="Staff login email" defaultValue={sharedLogin?.email ?? ""} required />
+              <Input name="password" type="password" placeholder={sharedLogin ? "New staff password" : "Staff password (8+ characters)"} minLength={8} required />
+              <Button>{sharedLogin ? "Update" : "Set up"}</Button>
+            </form>
+          )}
+        </div>
         <ul className="mb-4 divide-y divide-slate-100 text-sm">
-          {users.map((u) => <li key={u.id} className="flex justify-between py-1.5"><span>{u.name} <span className="text-slate-500">· {u.email}</span></span><Badge>{ROLE_LABEL[u.role]}</Badge></li>)}
+          {users.map((u) => (
+            <li key={u.id} className="flex items-center justify-between gap-3 py-2">
+              <span><b className="font-semibold">{u.name}</b>{u.title && <span className="text-slate-500"> · {u.title}</span>}{!u.email.endsWith("@staff.rc.local") && <span className="block text-xs text-slate-400">Personal login: {u.email}</span>}</span>
+              <Badge>{ROLE_LABEL[u.role]}</Badge>
+            </li>
+          ))}
         </ul>
         {can(user.role, "manage_users") && (
-          <form action={inviteUserAction} className="grid gap-2 md:grid-cols-6">
-            <Input name="name" placeholder="Name" required />
-            <Input name="email" type="email" placeholder="Email" required />
-            <Input name="title" placeholder="Title" />
+          <form action={addStaffProfileAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+            <Input name="name" placeholder="Coach's name" required />
+            <Input name="title" placeholder="Title (e.g. Pitching Coach)" />
             <Select name="role" defaultValue="assistant_coach">{(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</Select>
-            <Input name="password" type="password" placeholder="Temporary password" minLength={8} required />
-            <Button>Add staff</Button>
+            <Button>Add to staff</Button>
           </form>
+        )}
+        {can(user.role, "manage_users") && (
+          <details className="mt-4 text-sm">
+            <summary className="text-slate-500 underline">Give someone their own personal login instead</summary>
+            <form action={inviteUserAction} className="mt-3 grid gap-2 md:grid-cols-6">
+              <Input name="name" placeholder="Name" required />
+              <Input name="email" type="email" placeholder="Email" required />
+              <Input name="title" placeholder="Title" />
+              <Select name="role" defaultValue="assistant_coach">{(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</Select>
+              <Input name="password" type="password" placeholder="Temporary password" minLength={8} required />
+              <Button>Add</Button>
+            </form>
+          </details>
         )}
       </Card>
 

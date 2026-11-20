@@ -3,7 +3,7 @@
 //   - PostgreSQL / Supabase via `pg` when DATABASE_URL is set
 // SQL is written with `?` placeholders; the pg driver rewrites them to $1..$n.
 
-import { SCHEMA } from "./schema";
+import { COLUMN_MIGRATIONS, SCHEMA } from "./schema";
 
 export type Row = Record<string, unknown>;
 export type Param = string | number | null;
@@ -76,7 +76,12 @@ function toPg(sql: string): string {
 
 async function createPostgres(url: string): Promise<Db> {
   const { Pool } = await import("pg");
-  const pool = new Pool({ connectionString: url, max: 5, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+  // Hosted Postgres (Supabase/Neon via Vercel) adds ?sslmode=… to the URL; newer
+  // pg versions treat that as strict certificate checking, which fails behind
+  // poolers. RC sets TLS itself instead.
+  const local = /localhost|127\.0\.0\.1/.test(url);
+  const clean = url.replace(/([?&])(sslmode|supa|pgbouncer)=[^&]*&?/g, "$1").replace(/[?&]$/, "");
+  const pool = new Pool({ connectionString: clean, max: 5, ssl: local ? undefined : { rejectUnauthorized: false } });
   type Client = { query: (s: string, p?: Param[]) => Promise<{ rows: Row[]; rowCount: number | null }> };
   const make = (client: Client, inTx: boolean): Db => ({
     driver: "postgres",
@@ -113,11 +118,19 @@ async function createPostgres(url: string): Promise<Db> {
 }
 
 export async function createDb(opts?: { url?: string; sqlitePath?: string }): Promise<Db> {
-  const url = opts?.url ?? process.env.DATABASE_URL;
+  // DATABASE_URL, or POSTGRES_URL as set by Vercel's Supabase/Neon integrations.
+  const url = opts?.url ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
   const db = url
     ? await createPostgres(url)
     : await createSqlite(opts?.sqlitePath ?? process.env.RC_SQLITE_PATH ?? "./data/rc.db");
   for (const stmt of SCHEMA) await db.run(stmt);
+  for (const stmt of COLUMN_MIGRATIONS) {
+    try {
+      await db.run(stmt);
+    } catch {
+      /* column already exists */
+    }
+  }
   return db;
 }
 

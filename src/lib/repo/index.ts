@@ -6,6 +6,7 @@ import type { AthleteCore, MetricObservation, RecruitingCriteria, Role, SourceKi
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "../domain/compliance";
 import { DEFAULT_MINUTES_PER_TASK, type EventType } from "../domain/timesavings";
 import { assertCan, type Action } from "../domain/permissions";
+import { timezoneForLocation } from "../domain/time";
 
 export interface Ctx {
   db: Db;
@@ -29,6 +30,8 @@ export interface OrgSettings {
   branding: Branding;
   /** Automatic stat updates from public pages coaches link to players. */
   pageWatch: { enabled: boolean; everyHours: number };
+  /** IANA time zone for showing and reading game times (from campus unless set). */
+  timezone: string;
 }
 
 export interface Branding {
@@ -81,6 +84,7 @@ export function orgFromRow(r: Row): Org {
       emailSendingEnabled: Boolean(s.emailSendingEnabled),
       programDisplayName: s.programDisplayName,
       branding: sanitizeBranding(s.branding),
+      timezone: typeof s.timezone === "string" && s.timezone ? s.timezone : timezoneForLocation(r.campus_lat == null ? null : Number(r.campus_lat), r.campus_lng == null ? null : Number(r.campus_lng)),
       pageWatch: { enabled: s.pageWatch?.enabled ?? true, everyHours: Math.min(168, Math.max(6, Number(s.pageWatch?.everyHours ?? 12))) },
     },
   };
@@ -224,6 +228,8 @@ export interface AthleteRecord extends AthleteCore {
   identityConfidence: number;
   email: string | null;
   guardianEmail: string | null;
+  phone: string | null;
+  xHandle: string | null;
   contactConsent: "granted" | "denied" | "unknown";
   isMinor: boolean | null;
   optedOut: boolean;
@@ -255,6 +261,8 @@ export function athleteFromRow(r: Row): AthleteRecord {
     commitmentVerified: Boolean(Number(r.commitment_verified)),
     email: (r.email as string) ?? null,
     guardianEmail: (r.guardian_email as string) ?? null,
+    phone: (r.phone as string) ?? null,
+    xHandle: (r.x_handle as string) ?? null,
     contactConsent: (r.contact_consent as AthleteRecord["contactConsent"]) ?? "unknown",
     isMinor: r.is_minor == null ? null : Boolean(Number(r.is_minor)),
     optedOut: Boolean(Number(r.opted_out)),
@@ -314,16 +322,18 @@ export async function listObservations(db: Db, orgId: string, athleteIds?: strin
 export async function updateAthleteContact(
   ctx: Ctx,
   athleteId: string,
-  patch: { email?: string | null; guardianEmail?: string | null; contactConsent?: string; isMinor?: boolean | null; optedOut?: boolean },
+  patch: { email?: string | null; guardianEmail?: string | null; phone?: string | null; xHandle?: string | null; contactConsent?: string; isMinor?: boolean | null; optedOut?: boolean },
 ) {
   authorize(ctx, "note");
   const a = await getAthlete(ctx.db, ctx.orgId, athleteId);
   if (!a) throw new Error("Athlete not found");
   await ctx.db.run(
-    "UPDATE athletes SET email = ?, guardian_email = ?, contact_consent = ?, is_minor = ?, opted_out = ?, updated_at = ? WHERE org_id = ? AND id = ?",
+    "UPDATE athletes SET email = ?, guardian_email = ?, phone = ?, x_handle = ?, contact_consent = ?, is_minor = ?, opted_out = ?, updated_at = ? WHERE org_id = ? AND id = ?",
     [
       patch.email !== undefined ? patch.email : a.email,
       patch.guardianEmail !== undefined ? patch.guardianEmail : a.guardianEmail,
+      patch.phone !== undefined ? normalizePhone(patch.phone) : a.phone,
+      patch.xHandle !== undefined ? normalizeXHandle(patch.xHandle) : a.xHandle,
       patch.contactConsent ?? a.contactConsent,
       patch.isMinor !== undefined ? (patch.isMinor == null ? null : patch.isMinor ? 1 : 0) : a.isMinor == null ? null : a.isMinor ? 1 : 0,
       patch.optedOut !== undefined ? (patch.optedOut ? 1 : 0) : a.optedOut ? 1 : 0,
@@ -579,6 +589,8 @@ export interface User {
   title: string | null;
   role: Role;
   lastBriefAt: string | null;
+  /** The program's shared staff login (not a person). */
+  isShared: boolean;
 }
 
 export function userFromRow(r: Row): User {
@@ -590,11 +602,12 @@ export function userFromRow(r: Row): User {
     title: (r.title as string) ?? null,
     role: r.role as Role,
     lastBriefAt: (r.last_brief_at as string) ?? null,
+    isShared: Boolean(Number(r.is_shared ?? 0)),
   };
 }
 
 export async function listUsers(db: Db, orgId: string): Promise<User[]> {
-  return (await db.all("SELECT * FROM users WHERE org_id = ? ORDER BY created_at", [orgId])).map(userFromRow);
+  return (await db.all("SELECT * FROM users WHERE org_id = ? AND is_shared = 0 ORDER BY created_at", [orgId])).map(userFromRow);
 }
 
 export async function markBriefReviewed(ctx: Ctx) {
@@ -608,4 +621,19 @@ export async function listAudit(ctx: Ctx, limit = 100) {
     "SELECT a.*, u.name AS user_name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id WHERE a.org_id = ? ORDER BY a.created_at DESC LIMIT ?",
     [ctx.orgId, limit],
   );
+}
+
+/** "(760) 555-0101", "760.555.0101", "+1 760 555 0101" → "(760) 555-0101". Returns null if not a US number. */
+export function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const d = raw.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+  if (d.length !== 10 || /^[01]/.test(d)) return null;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+/** "@jpike27", "x.com/jpike27", "https://twitter.com/jpike27" → "jpike27". */
+export function normalizeXHandle(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const m = raw.trim().match(/^(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com\/@?([A-Za-z0-9_]{1,15})|^@?([A-Za-z0-9_]{1,15})$/);
+  return m ? (m[1] ?? m[2]) : null;
 }

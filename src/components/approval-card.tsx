@@ -12,6 +12,7 @@ const COPY: Record<Approval["kind"], { label: string; dot: string; yes: string; 
   itinerary: { label: "Scouting trip idea", dot: "bg-sky-500", yes: "Save itinerary", no: "Dismiss" },
   data_conflict: { label: "Numbers don't match", dot: "bg-amber-500", yes: "Got it", no: "Dismiss" },
   compliance: { label: "Compliance check", dot: "bg-rose-500", yes: "Clear to send", no: "Hold" },
+  contact_found: { label: "Contact info found", dot: "bg-sky-500", yes: "Save to profile", no: "Don't save" },
 };
 
 export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideCompliance }: { a: Approval; message?: MessageRow; returnTo?: string; canDecide: boolean; canDecideCompliance: boolean }) {

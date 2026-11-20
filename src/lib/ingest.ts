@@ -10,7 +10,7 @@ import { siteLabel } from "./watch/fetcher";
 import { decideIdentity, normalizeName } from "./domain/identity";
 import { metricDef } from "./domain/metrics";
 import { isVerifiedLevel, resolveMetric } from "./domain/provenance";
-import { athleteFromRow, listObservations, logEvent, Source, type AthleteRecord } from "./repo";
+import { athleteFromRow, listObservations, logEvent, normalizePhone, normalizeXHandle, Source, type AthleteRecord } from "./repo";
 import { createApproval } from "./repo/approvals";
 import type { ProviderAthleteRecord } from "./providers/types";
 
@@ -145,13 +145,13 @@ async function insertAthlete(db: Db, orgId: string, rec: ProviderAthleteRecord, 
   const state = normalizeState(rec.state);
   const geo = locateAthlete({ zip: rec.zip, city: rec.city, state });
   await db.run(
-    `INSERT INTO athletes (id, org_id, first_name, last_name, grad_year, sport, primary_position, secondary_position, bats, throws, high_school, team, city, state, zip, lat, lng, geo_precision, identity_confidence, commitment_status, commitment_verified, email, guardian_email, is_demo, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?)`,
+    `INSERT INTO athletes (id, org_id, first_name, last_name, grad_year, sport, primary_position, secondary_position, bats, throws, high_school, team, city, state, zip, lat, lng, geo_precision, identity_confidence, commitment_status, commitment_verified, email, guardian_email, phone, x_handle, is_demo, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?)`,
     [
       id, orgId, rec.firstName.trim(), rec.lastName.trim(), rec.gradYear, rec.sport ?? opts.sport, rec.primaryPosition ?? null, rec.secondaryPosition ?? null,
       rec.bats ?? null, rec.throws ?? null, rec.highSchool ?? null, rec.team ?? null, rec.city ?? null, state, rec.zip ?? null,
       geo?.lat ?? null, geo?.lng ?? null, geo?.precision ?? null, rec.commitmentStatus ?? "unknown", rec.commitmentVerified ? 1 : 0,
-      rec.email ?? null, rec.guardianEmail ?? null, opts.isDemo ? 1 : 0, now, now,
+      rec.email ?? null, rec.guardianEmail ?? null, normalizePhone(rec.phone), normalizeXHandle(rec.xHandle), opts.isDemo ? 1 : 0, now, now,
     ],
   );
   return id;
@@ -175,6 +175,8 @@ async function updateFacts(db: Db, orgId: string, athleteId: string, rec: Provid
   fill("zip", a.zip, rec.zip);
   fill("email", a.email, rec.email);
   fill("guardian_email", a.guardianEmail, rec.guardianEmail);
+  fill("phone", a.phone, normalizePhone(rec.phone));
+  fill("x_handle", a.xHandle, normalizeXHandle(rec.xHandle));
   fill("grad_year", a.gradYear, rec.gradYear);
   if (a.lat == null) {
     const geo = locateAthlete({ zip: rec.zip ?? a.zip, city: rec.city ?? a.city, state: normalizeState(rec.state) ?? a.state });

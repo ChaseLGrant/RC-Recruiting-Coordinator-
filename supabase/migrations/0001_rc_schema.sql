@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     title TEXT,
     role TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    is_shared INTEGER NOT NULL DEFAULT 0,
     last_brief_at TEXT,
     created_at TEXT NOT NULL
   );
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id),
+    acting_user_id TEXT,
     expires_at TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
@@ -73,6 +75,8 @@ CREATE TABLE IF NOT EXISTS athletes (
     commitment_source_id TEXT,
     email TEXT,
     guardian_email TEXT,
+    phone TEXT,
+    x_handle TEXT,
     contact_consent TEXT NOT NULL DEFAULT 'unknown',
     is_minor INTEGER,
     opted_out INTEGER NOT NULL DEFAULT 0,
@@ -346,6 +350,19 @@ CREATE TABLE IF NOT EXISTS pending_imports (
     created_at TEXT NOT NULL
   );
 
+CREATE TABLE IF NOT EXISTS contacts (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL REFERENCES athletes(id),
+    user_id TEXT,
+    kind TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    note TEXT,
+    created_at TEXT NOT NULL
+  );
+
+CREATE INDEX IF NOT EXISTS idx_contacts_athlete ON contacts(org_id, athlete_id, occurred_at);
+
 CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
@@ -379,4 +396,5 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tracked_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pending_imports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

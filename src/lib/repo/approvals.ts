@@ -16,7 +16,8 @@ export type ApprovalKind =
   | "camp_list" // camp invitation list
   | "itinerary" // scouting itinerary suggestion
   | "data_conflict" // conflicting athlete data / possible duplicate
-  | "compliance"; // compliance warning needing review
+  | "compliance" // compliance warning needing review
+  | "contact_found"; // contact details found on a page the staff linked
 
 export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   prospect: "New prospect",
@@ -26,6 +27,7 @@ export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   itinerary: "Scouting itinerary",
   data_conflict: "Data conflict",
   compliance: "Compliance review",
+  contact_found: "Contact info found",
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "saved";
@@ -182,6 +184,19 @@ async function applyApproval(ctx: Ctx, a: Approval, input: DecisionInput): Promi
     }
     case "itinerary":
       return "Itinerary saved";
+    case "contact_found": {
+      if (!a.athleteId) return "Approved";
+      const ath = await getAthlete(ctx.db, ctx.orgId, a.athleteId);
+      if (!ath) return "Player no longer exists";
+      const p = a.payload as { email?: string | null; phone?: string | null; xHandle?: string | null; site?: string };
+      const { updateAthleteContact } = await import("./index");
+      await updateAthleteContact(ctx, a.athleteId, {
+        email: ath.email ?? p.email ?? null,
+        phone: ath.phone ?? p.phone ?? null,
+        xHandle: ath.xHandle ?? p.xHandle ?? null,
+      });
+      return "Contact info saved to the player's profile";
+    }
   }
 }
 
@@ -367,7 +382,7 @@ export async function mergeAthletes(ctx: Ctx, keepId: string, dropId: string) {
   const keep = await getAthlete(ctx.db, ctx.orgId, keepId);
   const drop = await getAthlete(ctx.db, ctx.orgId, dropId);
   if (!keep || !drop) throw new Error("Athlete not found");
-  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events", "tracked_pages"]) {
+  for (const table of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "events", "tracked_pages", "contacts"]) {
     await ctx.db.run(`UPDATE ${table} SET athlete_id = ? WHERE org_id = ? AND athlete_id = ?`, [keepId, ctx.orgId, dropId]);
   }
   await ctx.db.run("DELETE FROM follows WHERE org_id = ? AND athlete_id = ? AND EXISTS (SELECT 1 FROM follows f WHERE f.org_id = ? AND f.athlete_id = ?)", [ctx.orgId, dropId, ctx.orgId, keepId]);
@@ -386,7 +401,7 @@ export async function deleteAthleteData(ctx: Ctx, athleteId: string, reason: str
   const a = await getAthlete(ctx.db, ctx.orgId, athleteId);
   if (!a) throw new Error("Athlete not found");
   await ctx.db.tx(async (db) => {
-    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events", "tracked_pages"]) {
+    for (const t of ["athlete_source_records", "metric_observations", "film_links", "games", "notes", "messages", "camp_targets", "follows", "mission_matches", "tasks", "approvals", "events", "tracked_pages", "contacts"]) {
       await db.run(`DELETE FROM ${t} WHERE org_id = ? AND athlete_id = ?`, [ctx.orgId, athleteId]);
     }
     await db.run("DELETE FROM athletes WHERE org_id = ? AND id = ?", [ctx.orgId, athleteId]);
@@ -443,4 +458,9 @@ export async function setCampTargetStatus(ctx: Ctx, campId: string, athleteId: s
   ]);
   if (r.changes === 0) throw new Error("Camp target not found");
   await audit(ctx, "camp_target_status", "camp", campId, { athleteId, status });
+  if (status === "attended") {
+    const camp = await ctx.db.get<{ name: string }>("SELECT name FROM camps WHERE org_id = ? AND id = ?", [ctx.orgId, campId]);
+    const { logContact } = await import("./contacts");
+    await logContact(ctx, athleteId, { kind: "camp", note: camp ? `Attended ${camp.name}` : null });
+  }
 }

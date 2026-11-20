@@ -124,6 +124,6 @@ export function timeAgo(iso: string | null | undefined) {
 }
 
 export function Avatar({ first, last, size = "md" }: { first: string; last: string; size?: "md" | "lg" }) {
-  const sz = size === "lg" ? "h-20 w-20 text-4xl" : "h-12 w-12 text-2xl";
+  const sz = size === "lg" ? "h-14 w-14 text-2xl sm:h-20 sm:w-20 sm:text-4xl" : "h-12 w-12 text-2xl";
   return <span className={cx("font-display grid shrink-0 place-items-center bg-brand-900 font-extrabold text-white shadow-[inset_0_-4px_0_var(--team-primary)]", sz)} aria-hidden>{(first[0] ?? "") + (last[0] ?? "")}</span>;
 }

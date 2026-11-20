@@ -2,21 +2,29 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "./db";
-import { userForSession } from "./auth";
+import { sessionInfo, type SessionInfo } from "./auth";
 import { getOrg, type Ctx, type Org, type User } from "./repo";
 
 export const SESSION_COOKIE = "rc_session";
 
-export async function currentUser(): Promise<User | null> {
+export async function currentSession(): Promise<SessionInfo | null> {
   const db = await getDb();
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  return userForSession(db, token);
+  return sessionInfo(db, (await cookies()).get(SESSION_COOKIE)?.value);
 }
 
-export async function requireSession(): Promise<{ ctx: Ctx; user: User; org: Org }> {
+/** The person using RC right now (null if signed out). */
+export async function currentUser(): Promise<User | null> {
+  const s = await currentSession();
+  return s ? (s.acting ?? s.login) : null;
+}
+
+export async function requireSession(): Promise<{ ctx: Ctx; user: User; org: Org; shared: boolean }> {
   const db = await getDb();
-  const user = await currentUser();
-  if (!user) redirect("/login");
+  const s = await currentSession();
+  if (!s) redirect("/login");
+  // Shared staff login: everyone picks their name first so their work is attributed.
+  if (!s.acting) redirect("/who");
+  const user = s.acting;
   const org = await getOrg(db, user.orgId);
-  return { ctx: { db, orgId: user.orgId, userId: user.id, role: user.role }, user, org };
+  return { ctx: { db, orgId: user.orgId, userId: user.id, role: user.role }, user, org, shared: s.login.isShared };
 }

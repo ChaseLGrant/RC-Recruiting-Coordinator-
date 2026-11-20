@@ -4,7 +4,7 @@ import { metricDef } from "@/lib/domain/metrics";
 import type { ResolvedMetric } from "@/lib/domain/provenance";
 import type { MatchResult } from "@/lib/domain/types";
 import type { AthleteRecord } from "@/lib/repo";
-import { Avatar, Badge, fmtDate } from "./ui";
+import { Avatar, Badge, fmtDate, timeAgo } from "./ui";
 import { DemoTag, MetricValue } from "./evidence";
 
 export function FitPill({ match }: { match: MatchResult }) {
@@ -32,8 +32,9 @@ export function gapText(match: MatchResult): string | null {
 }
 
 export function PlayerCard({
-  athlete: a, match, metrics, statKeys, following, nextGame, filmCount, returnTo, compareForm, boardStatus,
+  athlete: a, match, metrics, statKeys, following, nextGame, filmCount, returnTo, compareForm, boardStatus, lastContact,
 }: {
+  lastContact?: { label: string; who: string | null; when: string } | null;
   athlete: AthleteRecord; match?: MatchResult; metrics: Map<string, ResolvedMetric>; statKeys: string[]; following: boolean;
   nextGame?: { starts_at: string; opponent: string | null } | null; filmCount?: number; returnTo: string; compareForm?: string; boardStatus?: string;
 }) {
@@ -66,6 +67,11 @@ export function PlayerCard({
       </dl>
 
       {gaps && <p className="mt-3 text-xs text-slate-500">{gaps}</p>}
+      {lastContact !== undefined && (
+        <p className="mt-3 text-xs text-slate-600">
+          {lastContact ? <>Last contact: <b>{lastContact.label}</b>{lastContact.who ? ` · ${lastContact.who}` : ""} · {timeAgo(lastContact.when)}</> : <span className="text-slate-400">No contact logged yet</span>}
+        </p>
+      )}
 
       <div className="relative z-10 mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
         <form action={toggleFollowAction}>

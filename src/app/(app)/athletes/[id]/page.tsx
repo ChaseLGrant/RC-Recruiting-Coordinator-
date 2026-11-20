@@ -6,11 +6,13 @@ import { listCamps } from "@/lib/repo/approvals";
 import { METRICS, metricDef, SEASON_STAT_KEYS } from "@/lib/domain/metrics";
 import { listTrackedPages } from "@/lib/watch/runner";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
-import { freshnessLabel } from "@/lib/domain/provenance";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
-import { trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
-import { Avatar, Badge, Button, Card, Empty, Flash, Input, Label, Select, fmtDate, fmtDateTime, timeAgo } from "@/components/ui";
+import { deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { Avatar, Badge, Button, Card, Flash, Input, Label, Select, fmtDate, timeAgo } from "@/components/ui";
+import { LogContactForm } from "@/components/contact-log";
+import { CONTACT_KINDS, contactCounts, listContacts, type ContactKind } from "@/lib/repo/contacts";
+import { formatInZone, tzAbbrev } from "@/lib/domain/time";
 import { DemoTag, MetricValue, VerificationBadge } from "@/components/evidence";
 
 const MISSING_LABEL: Record<string, string> = {
@@ -31,20 +33,22 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   const upcoming = ev.games.filter((g) => g.starts_at > new Date().toISOString());
   const idConf = identityConfidenceLabel(a.identityConfidence);
   const emailReady = org.settings.emailSendingEnabled && Boolean(getEmailProvider());
+  const tz = org.settings.timezone;
+  const [contacts, counts] = await Promise.all([listContacts(ctx.db, ctx.orgId, a.id), contactCounts(ctx.db, ctx.orgId, a.id)]);
 
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <section className="mb-6 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-7">
+      <section className="-mx-4 mb-6 border-y border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-4 shadow-[var(--shadow-soft)] sm:mx-0 sm:border-x sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <Avatar first={a.firstName} last={a.lastName} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.9] sm:text-6xl">{a.firstName} {a.lastName}</h1>
+              <h1 className="font-display text-4xl font-extrabold uppercase leading-[0.9] sm:text-6xl">{a.firstName} {a.lastName}</h1>
               {a.isDemo && <DemoTag />}
               {idConf !== "high" && <Badge tone="amber" title="RC isn't fully sure every linked record is this same player">Check identity</Badge>}
             </div>
-            <p className="mt-1 text-[15px] text-slate-600">
+            <p className="mt-1.5 text-sm text-slate-600 sm:text-[15px]">
               {[a.primaryPosition && `${a.primaryPosition}${a.secondaryPosition ? ` / ${a.secondaryPosition}` : ""}`, a.gradYear && `Class of ${a.gradYear}`, a.highSchool, [a.city, a.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
             </p>
             <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -92,13 +96,76 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
             );
           })}
         </div>
+        {(a.phone || a.email || a.xHandle) && !a.optedOut && (
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+            {a.phone && <a href={`tel:${a.phone.replace(/\D/g, "")}`} className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-white">Call</a>}
+            {a.phone && <a href={`sms:${a.phone.replace(/\D/g, "")}`} className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em]">Text</a>}
+            {a.email && <a href={`mailto:${a.email}`} className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em]">Email</a>}
+            {a.xHandle && <a href={`https://x.com/${a.xHandle}`} target="_blank" rel="noopener noreferrer" className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold tracking-[0.04em]">@{a.xHandle} on X</a>}
+            <span className="text-xs text-slate-500">{[a.phone, a.email].filter(Boolean).join(" · ")}</span>
+          </div>
+        )}
+        {a.optedOut && <p className="mt-4 bg-rose-50 px-4 py-2.5 text-sm text-rose-900">This player opted out of communications. Don&apos;t contact them.</p>}
         {ev.conflicts.length > 0 && (
           <p className="mt-4 rounded-[4px] bg-amber-50 px-4 py-2.5 text-sm text-amber-900">Sources disagree on {ev.conflicts.map((c) => metricDef(c.key).label.toLowerCase()).join(", ")}. RC shows both numbers instead of picking one. Tap the number to compare.</p>
         )}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Staff work comes first on a phone: log a contact, read the timeline, leave a note. */}
+        <div className="space-y-6 lg:col-start-2 lg:row-start-1">
+          <Card title="Recruiting contact" id="contact">
+            <LogContactForm athleteId={a.id} returnTo={`${here}#contact`} />
+            {contacts.length > 0 && (
+              <>
+                <div className="mt-5 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                  {Object.entries(counts).map(([k, n]) => <span key={k}><b className="text-slate-800">{n}</b> {CONTACT_KINDS[k as ContactKind]?.label.toLowerCase() ?? k}</span>)}
+                </div>
+                <ol className="mt-3 space-y-3">
+                  {contacts.slice(0, 25).map((c) => (
+                    <li key={c.id} className="relative border-l-2 border-[var(--team-primary)] pl-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-semibold">{CONTACT_KINDS[c.kind]?.label ?? c.kind}</span>
+                        <span className="text-xs text-slate-400">{formatInZone(c.occurred_at, tz, { month: "short", day: "numeric" })}</span>
+                      </div>
+                      {c.note && <p className="mt-0.5 text-sm text-slate-600">{c.note}</p>}
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+                        <span>{c.user_name ?? "Staff"}</span>
+                        {(c.user_name === user.name || user.role === "head_coach") && (
+                          <form action={deleteContactAction}><input type="hidden" name="contactId" value={c.id} /><input type="hidden" name="athleteId" value={a.id} /><button className="hover:text-rose-600">Remove</button></form>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </Card>
+
+          <Card title="Staff notes" id="notes">
+            <form action={addNoteAction} className="mb-4 space-y-2">
+              <input type="hidden" name="athleteId" value={a.id} />
+              <label htmlFor="note-body" className="sr-only">Note for the staff</label>
+              <textarea id="note-body" name="body" rows={3} placeholder="Note for the staff: your evaluation, family info, next steps…" className="w-full rounded-[3px] border border-slate-200 p-3 text-sm" />
+              <Button variant="secondary">Post note</Button>
+            </form>
+            {ev.notes.length === 0 ? <p className="text-sm text-slate-500">No notes yet. Everyone on staff sees what you post here.</p> : (
+              <ul className="space-y-3">
+                {ev.notes.map((n) => (
+                  <li key={n.id} className="bg-slate-50 p-3">
+                    <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                      <b className="text-slate-800">{n.user_name ?? "Staff"}</b>
+                      <span className="text-slate-400">{timeAgo(n.created_at)}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-slate-700">{n.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
           <Card title="Season stats" id="season" action={tracked.length > 0 ? <form action={checkPagesNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">Check now</button></form> : undefined}>
             {seasonKeys.length > 0 ? (
               <div className="mb-4 grid grid-cols-3 border-l border-t border-slate-900/10 sm:grid-cols-4">
@@ -110,113 +177,113 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                 ))}
               </div>
             ) : (
-              <p className="mb-4 text-sm text-slate-500">No season stats yet. Link the player&apos;s stats page once and RC keeps this updated all season, so you don&apos;t have to look it up.</p>
+              <p className="mb-4 text-sm text-slate-500">No season stats yet. Link the player&apos;s stats or team schedule page once and RC keeps stats and games updated all season.</p>
             )}
             {tracked.length > 0 && (
               <ul className="mb-4 space-y-2 text-sm">
                 {tracked.map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center gap-2">
                     <Badge tone={t.status === "ok" ? "green" : t.status === "pending" ? "slate" : "amber"}>{t.site}</Badge>
-                    <a href={t.url} target="_blank" rel="noopener noreferrer" className="max-w-[16rem] truncate text-brand-700 underline">{t.url.replace(/^https?:\/\/(www\.)?/, "")}</a>
-                    <span className="text-xs text-slate-500">{t.status === "ok" ? `Updated automatically · checked ${timeAgo(t.last_fetched_at)}` : t.status_detail ?? "Waiting for first check"}</span>
-                    <form action={untrackPageAction} className="ml-auto"><input type="hidden" name="pageId" value={t.id} /><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs text-slate-400 hover:text-rose-600">Unlink</button></form>
+                    <span className="min-w-0 flex-1 text-xs text-slate-500">{t.status === "ok" ? `${t.status_detail ?? "Updating"} · checked ${timeAgo(t.last_fetched_at)}` : t.status_detail ?? "Waiting for first check"}</span>
+                    <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-700 underline">Open</a>
+                    <form action={untrackPageAction}><input type="hidden" name="pageId" value={t.id} /><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs text-slate-400 hover:text-rose-600">Unlink</button></form>
                   </li>
                 ))}
               </ul>
             )}
             <form action={trackPageAction} className="flex flex-col gap-2 sm:flex-row">
               <input type="hidden" name="athleteId" value={a.id} />
-              <label htmlFor="track-url" className="sr-only">Stats page link</label>
-              <Input id="track-url" name="url" placeholder="Paste a stats page link (MaxPreps, Perfect Game, team site…)" />
+              <label htmlFor="track-url" className="sr-only">Stats or schedule page link</label>
+              <Input id="track-url" name="url" placeholder="Paste a stats or schedule link (MaxPreps, Perfect Game…)" />
               <Button className="shrink-0">Link & track</Button>
             </form>
           </Card>
 
-          <Card title="Every number and where it came from">
-            {metrics.size === 0 ? <Empty>No measurements on record from any connected source.</Empty> : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1 pr-3">Metric</th><th className="pr-3">Value</th><th className="pr-3">Verification</th><th className="pr-3">Source</th><th className="pr-3">Measured</th><th className="pr-3">RC last checked</th></tr></thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {Object.keys(METRICS).filter((k) => metrics.has(k)).map((k) => {
-                      const m = metrics.get(k)!;
-                      const p = m.primary;
-                      return (
-                        <tr key={k} className={m.conflict ? "bg-rose-50/50" : ""}>
-                          <td className="py-2 pr-3 font-medium">{metricDef(k).label}{m.observations.length > 1 && <div className="text-xs font-normal text-slate-500">{m.observations.length} observations</div>}</td>
-                          <td className="pr-3"><MetricValue m={m} /></td>
-                          <td className="pr-3"><VerificationBadge v={p.verification} badge={m.verifiedBadge} sourceKind={p.sourceKind} /></td>
-                          <td className="pr-3 text-xs">{p.sourceName}{(p as typeof p & { eventName?: string | null }).eventName ? <div className="text-slate-500">{(p as typeof p & { eventName?: string | null }).eventName}</div> : null}</td>
-                          <td className="pr-3 text-xs">{p.measuredAt ? fmtDate(p.measuredAt) : <span className="text-amber-700">unknown</span>}</td>
-                          <td className="pr-3 text-xs">{timeAgo(p.checkedAt)} <span className={freshnessLabel(p.checkedAt) === "stale" ? "text-rose-600" : "text-slate-400"}>({freshnessLabel(p.checkedAt)})</span></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+          <Card title="Upcoming games" id="games">
+            {upcoming.length === 0 ? <p className="text-sm text-slate-500">No upcoming games found yet. Link the team&apos;s schedule page above and RC adds games and changes automatically.</p> : (
+              <ul className="divide-y divide-slate-100">
+                {upcoming.map((g) => (
+                  <li key={g.id} className="flex gap-4 py-3">
+                    <div className="w-14 shrink-0 text-center">
+                      <div className="eyebrow text-[var(--team-primary)]">{formatInZone(g.starts_at, tz, { month: "short" })}</div>
+                      <div className="font-display text-3xl font-extrabold leading-none">{formatInZone(g.starts_at, tz, { day: "numeric" })}</div>
+                    </div>
+                    <div className="min-w-0 flex-1 text-sm">
+                      <div className="font-semibold">{g.team_name ?? "Team"} vs {g.opponent ?? "TBD"}</div>
+                      <div className="text-slate-500">
+                        {formatInZone(g.starts_at, tz, { weekday: "short", hour: "numeric", minute: "2-digit" })} {tzAbbrev(tz)}
+                        {g.venue ? ` · ${g.venue}` : ""}{g.city ? ` · ${g.city}, ${g.state}` : ""}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {g.status === "changed" && <Badge tone="amber">Rescheduled</Badge>}
+                        {g.status === "cancelled" && <Badge tone="red">Canceled</Badge>}
+                        {!g.participation_confirmed && <Badge title="The team is scheduled; no source confirms this player will play">Playing not confirmed</Badge>}
+                        {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700 underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="Where the numbers come from">
+            {metrics.size === 0 ? <p className="text-sm text-slate-500">No measurements on record yet.</p> : (
+              <ul className="divide-y divide-slate-100">
+                {Object.keys(METRICS).filter((k) => metrics.has(k)).map((k) => {
+                  const m = metrics.get(k)!;
+                  const p = m.primary;
+                  const evName = (p as typeof p & { eventName?: string | null }).eventName;
+                  return (
+                    <li key={k} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
+                      <span className="w-32 shrink-0 text-sm font-semibold">{metricDef(k).label}</span>
+                      <span className="font-display w-24 text-xl font-bold"><MetricValue m={m} compact /></span>
+                      <span className="min-w-0 flex-1 text-xs text-slate-500">
+                        {p.sourceName}{evName ? ` · ${evName}` : ""} · {p.measuredAt ? `measured ${fmtDate(p.measuredAt)}` : "date unknown"}
+                        {m.observations.length > 1 && ` · ${m.observations.length} readings`}
+                      </span>
+                      <VerificationBadge v={p.verification} badge={m.verifiedBadge} sourceKind={p.sourceKind} />
+                    </li>
+                  );
+                })}
+              </ul>
             )}
             {ev.conflicts.length > 0 && (
-              <div className="mt-3 rounded-[4px] bg-rose-50 p-3 text-sm text-rose-900">
-                <b>Sources disagree.</b> RC shows every value and its date instead of choosing one:
-                <ul className="mt-1 list-disc pl-5">{ev.conflicts.map((c) => <li key={c.key}>{metricDef(c.key).label}: {c.conflictDetail}</li>)}</ul>
-              </div>
+              <p className="mt-3 bg-amber-50 p-3 text-sm text-amber-900"><b>Sources disagree</b> on {ev.conflicts.map((c) => `${metricDef(c.key).label.toLowerCase()} (${c.conflictDetail})`).join("; ")}. RC shows every value rather than picking one.</p>
             )}
-            {ev.missing.length > 0 && (
-              <div className="mt-3 rounded-[4px] bg-slate-50 p-3 text-sm text-slate-700">
-                <b>Missing information:</b> {ev.missing.map((k) => MISSING_LABEL[k] ?? METRICS[k]?.label ?? k).join(", ")}. RC never estimates missing measurements.
-              </div>
-            )}
+            {ev.missing.length > 0 && <p className="mt-3 text-xs text-slate-500">Not on record yet: {ev.missing.map((k) => MISSING_LABEL[k] ?? METRICS[k]?.label ?? k).join(", ")}. RC never estimates missing numbers.</p>}
           </Card>
 
           <Card title="Film" id="film">
-            {ev.film.length === 0 ? <Empty>No film links on record. Use “Request updated film” to ask for some.</Empty> : (
+            {ev.film.length === 0 ? <p className="text-sm text-slate-500">No film yet. Use Contact → &ldquo;Ask for updated film&rdquo;.</p> : (
               <ul className="space-y-2 text-sm">
                 {ev.film.map((f) => (
                   <li key={f.id} className="flex flex-wrap items-center justify-between gap-2">
-                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-600 hover:underline">{f.title ?? f.url} ↗</a>
-                    <span className="text-xs text-slate-500">Source: {f.source_name} · recorded {fmtDate(f.recorded_at)} · checked {timeAgo(f.checked_at)}</span>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-700 hover:underline">▶ {f.title ?? "Watch film"}</a>
+                    <span className="text-xs text-slate-500">{f.source_name}{f.recorded_at ? ` · ${fmtDate(f.recorded_at)}` : ""}</span>
                   </li>
                 ))}
               </ul>
             )}
           </Card>
 
-          <Card title="Upcoming games" id="games">
-            {upcoming.length === 0 ? <Empty>No upcoming games found in connected sources.</Empty> : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {upcoming.map((g) => (
-                  <li key={g.id} className="py-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <b>{fmtDateTime(g.starts_at)}</b> · {g.team_name ?? "Team"} vs {g.opponent ?? "TBD"} · {g.venue ?? "Venue TBD"}{g.city ? `, ${g.city}, ${g.state}` : ""}
-                      {g.status === "changed" && <Badge tone="amber">Rescheduled (was {fmtDate(g.previous_starts_at)})</Badge>}
-                      {g.status === "cancelled" && <Badge tone="red">Cancelled</Badge>}
-                      {g.participation_confirmed ? <Badge tone="green">Participation confirmed</Badge> : <Badge title="The team is scheduled; no source confirms this athlete will play">Participation not confirmed</Badge>}
-                    </div>
-                    <div className="text-xs text-slate-500">Source: {g.source_name} · checked {timeAgo(g.checked_at)} {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">original schedule ↗</a> : "· no public link provided"}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card title="Communication history">
-            {ev.messages.length === 0 ? <Empty>No messages yet.</Empty> : (
+          {ev.messages.length > 0 && (
+            <Card title="Messages">
               <ul className="divide-y divide-slate-100 text-sm">
                 {ev.messages.map((m) => (
-                  <li key={m.id} className="py-2">
+                  <li key={m.id} className="py-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={m.status === "sent" ? "green" : m.status === "approved" ? "blue" : m.status === "blocked" || m.status === "rejected" || m.status === "failed" ? "red" : "amber"}>{m.status.replace("_", " ")}</Badge>
                       <span className="font-medium">{m.subject}</span>
                       <span className="ml-auto text-xs text-slate-400">{timeAgo(m.created_at)}</span>
                     </div>
-                    {m.status_reason && <div className="text-xs text-slate-500">{m.status_reason}</div>}
+                    {m.status_reason && <div className="mt-1 text-xs text-slate-500">{m.status_reason}</div>}
                     {m.status === "approved" && (
-                      <div className="mt-1 flex flex-wrap gap-2">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {emailReady ? (
-                          <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="returnTo" value={here} /><Button variant="success" className="text-xs">Send now</Button></form>
+                          <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="returnTo" value={here} /><Button className="text-xs">Send now</Button></form>
                         ) : (
-                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-[4px] px-2 py-1 text-xs text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50">Open in my email client</a>
+                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-[3px] px-3 py-2 text-xs font-semibold text-brand-700 ring-1 ring-slate-200 hover:bg-slate-50">Open in my email</a>
                         )}
                         <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="manual" value="1" /><input type="hidden" name="returnTo" value={here} /><Button variant="ghost" className="text-xs">Mark as sent</Button></form>
                       </div>
@@ -224,57 +291,45 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                   </li>
                 ))}
               </ul>
-            )}
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card title="Coach notes">
-            <form action={addNoteAction} className="mb-3 space-y-2">
-              <input type="hidden" name="athleteId" value={a.id} />
-              <textarea name="body" rows={3} placeholder="Your evaluation — RC never writes these for you." className="w-full rounded-[4px] border border-slate-300 p-2 text-sm" />
-              <Button variant="secondary">Add note</Button>
-            </form>
-            <ul className="space-y-2 text-sm">{ev.notes.map((n) => <li key={n.id} className="rounded-[4px] bg-slate-50 p-2"><div className="whitespace-pre-wrap">{n.body}</div><div className="mt-1 text-xs text-slate-400">{n.user_name} · {timeAgo(n.created_at)}</div></li>)}</ul>
-          </Card>
-
-          <Card title="Linked source records">
-            <ul className="space-y-2 text-sm">
-              {ev.sources.map((s) => (
-                <li key={s.source_id + (s.external_id ?? "")}>
-                  <div className="font-medium">{s.source_name}</div>
-                  <div className="text-xs text-slate-500">Match: {Math.round(Number(s.match_confidence) * 100)}% — {s.match_reason} · fetched {timeAgo(s.fetched_at)}</div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card title="Contact & consent">
-            <form action={updateContactAction} className="space-y-2 text-sm">
-              <input type="hidden" name="athleteId" value={a.id} />
-              <div><Label>Athlete email</Label><Input name="email" type="email" defaultValue={a.email ?? ""} /></div>
-              <div><Label>Parent/guardian email</Label><Input name="guardianEmail" type="email" defaultValue={a.guardianEmail ?? ""} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Contact consent</Label><Select name="contactConsent" defaultValue={a.contactConsent} className="w-full"><option value="unknown">Unknown</option><option value="granted">Granted</option><option value="denied">Denied</option></Select></div>
-                <div><Label>Under 18?</Label><Select name="isMinor" defaultValue={a.isMinor == null ? "" : a.isMinor ? "1" : "0"} className="w-full"><option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option></Select></div>
-              </div>
-              <label className="flex items-center gap-2"><input type="checkbox" name="optedOut" value="1" defaultChecked={a.optedOut} /> Opted out of communications</label>
-              <Button variant="secondary">Save</Button>
-              <p className="text-xs text-slate-500">Used by compliance checks. Opted-out athletes are never contacted.</p>
-            </form>
-          </Card>
-
-          {can(user.role, "manage_settings") && (
-            <Card title="Privacy: remove this athlete">
-              <form action={deleteAthleteAction} className="space-y-2 text-sm">
-                <input type="hidden" name="athleteId" value={a.id} />
-                <p className="text-xs text-slate-600">Permanently deletes this athlete and every measurement, note, message and schedule record about them (for example, a family&apos;s removal request). This cannot be undone. The audit log records that a deletion happened and why, but not the athlete&apos;s details.</p>
-                <Input name="reason" placeholder="Reason (e.g. parent requested removal)" required />
-                <Input name="confirm" placeholder="Type DELETE to confirm" required />
-                <Button variant="danger">Permanently delete</Button>
-              </form>
             </Card>
           )}
+
+          <details className="border border-slate-900/10 bg-white">
+            <summary className="flex items-center justify-between px-5 py-4 text-sm font-semibold">Contact info, consent & records <span className="text-xs font-normal text-brand-700">Show</span></summary>
+            <div className="grid gap-6 border-t border-slate-100 p-5 md:grid-cols-2">
+              <form action={updateContactAction} className="space-y-2 text-sm">
+                <input type="hidden" name="athleteId" value={a.id} />
+                <div><Label>Player email</Label><Input name="email" type="email" defaultValue={a.email ?? ""} /></div>
+                <div><Label>Parent/guardian email</Label><Input name="guardianEmail" type="email" defaultValue={a.guardianEmail ?? ""} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Player phone</Label><Input name="phone" type="tel" defaultValue={a.phone ?? ""} placeholder="(760) 555-0101" /></div>
+                  <div><Label>X handle</Label><Input name="xHandle" defaultValue={a.xHandle ? `@${a.xHandle}` : ""} placeholder="@handle" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Contact consent</Label><Select name="contactConsent" defaultValue={a.contactConsent} className="w-full"><option value="unknown">Unknown</option><option value="granted">Granted</option><option value="denied">Denied</option></Select></div>
+                  <div><Label>Under 18?</Label><Select name="isMinor" defaultValue={a.isMinor == null ? "" : a.isMinor ? "1" : "0"} className="w-full"><option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option></Select></div>
+                </div>
+                <label className="flex items-center gap-2"><input type="checkbox" name="optedOut" value="1" defaultChecked={a.optedOut} /> Opted out of communications</label>
+                <Button variant="secondary">Save</Button>
+              </form>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="eyebrow mb-2 text-slate-500">Linked records</div>
+                  <ul className="space-y-1.5">{ev.sources.map((s) => <li key={s.source_id + (s.external_id ?? "")}><b className="font-medium">{s.source_name}</b><span className="block text-xs text-slate-500">Match {Math.round(Number(s.match_confidence) * 100)}% · {s.match_reason}</span></li>)}</ul>
+                </div>
+                {can(user.role, "manage_settings") && (
+                  <form action={deleteAthleteAction} className="space-y-2 border-t border-slate-100 pt-4">
+                    <input type="hidden" name="athleteId" value={a.id} />
+                    <div className="eyebrow text-rose-700">Remove this player</div>
+                    <p className="text-xs text-slate-600">Permanently deletes everything about this player (for a family&apos;s removal request). Can&apos;t be undone.</p>
+                    <Input name="reason" placeholder="Reason (e.g. parent requested removal)" required />
+                    <Input name="confirm" placeholder="Type DELETE to confirm" required />
+                    <Button variant="danger">Permanently delete</Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </div>

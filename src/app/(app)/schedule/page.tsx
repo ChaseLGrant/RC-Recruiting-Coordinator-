@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/session";
 import { followedIds } from "@/lib/repo";
 import { haversineMiles } from "@/lib/domain/geo";
 import { Badge, Empty, PageHeader, fmtDate } from "@/components/ui";
+import { formatInZone, tzAbbrev } from "@/lib/domain/time";
 import { DemoTag } from "@/components/evidence";
 
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ scope?: string; days?: string }> }) {
@@ -25,14 +26,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
         [ctx.orgId, now, until, ...ids],
       )
     : [];
+  const tz = org.settings.timezone;
   const byDay = new Map<string, typeof games>();
   for (const g of games) {
-    const d = g.starts_at.slice(0, 10);
+    const d = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date(g.starts_at));
     byDay.set(d, [...(byDay.get(d) ?? []), g]);
   }
   return (
     <div>
-      <PageHeader title="Schedule" subtitle="Upcoming games for your prospects, from connected sources. A scheduled team game never means RC knows the athlete will play." />
+      <PageHeader title="Schedule" subtitle={`Upcoming games for your recruits, kept current from their linked pages. Times in ${tzAbbrev(tz)}. A team game doesn't guarantee the player is in the lineup.`} />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         <Link href={`/schedule?scope=following&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "following" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following</Link>
         <Link href={`/schedule?scope=matched&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "matched" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following + mission matches</Link>
@@ -42,22 +44,26 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
       {games.length === 0 ? <Empty>No upcoming games found for these athletes in connected sources. Import schedules in Settings or follow more prospects.</Empty> : (
         <div className="space-y-4">
           {Array.from(byDay.entries()).map(([day, list]) => (
-            <section key={day} className="rounded-[4px] border border-slate-200 bg-white">
-              <h2 className="border-b border-slate-100 px-4 py-2 text-sm font-semibold">{fmtDate(day + "T12:00:00Z", { weekday: "long", month: "long", day: "numeric" })} <span className="font-normal text-slate-500">· {list.length} game{list.length > 1 ? "s" : ""}</span></h2>
-              <ul className="divide-y divide-slate-100">
+            <section key={day}>
+              <h2 className="font-display mb-2 text-2xl font-extrabold uppercase">{fmtDate(day + "T12:00:00Z", { weekday: "long", month: "short", day: "numeric" })} <span className="font-sans text-sm font-normal normal-case text-slate-500">· {list.length} game{list.length > 1 ? "s" : ""}</span></h2>
+              <ul className="divide-y divide-slate-100 border border-slate-900/10 bg-white">
                 {list.map((g) => {
                   const dist = org.campus && g.lat != null && g.lng != null ? haversineMiles(org.campus, { lat: g.lat, lng: g.lng }) : null;
                   return (
-                    <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm">
-                      <span className="w-20 text-xs text-slate-500">{new Date(g.starts_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC</span>
-                      <Link href={`/athletes/${g.athlete_id}`} className="font-medium hover:underline">{g.first_name} {g.last_name}</Link>{g.is_demo ? <DemoTag /> : null}
-                      <span className="text-slate-600">{g.primary_position} · {g.grad_year}</span>
-                      <span>{g.team_name ?? "Team"} vs {g.opponent ?? "TBD"}</span>
-                      <span className="text-slate-500">{g.venue ?? ""}{g.city ? ` · ${g.city}, ${g.state}` : ""}{dist != null ? ` · ${Math.round(dist)} mi from campus` : ""}</span>
-                      {g.status === "changed" && <Badge tone="amber">Moved from {fmtDate(g.previous_starts_at, { month: "short", day: "numeric" })}</Badge>}
-                      {g.status === "cancelled" && <Badge tone="red">Cancelled</Badge>}
-                      {!g.participation_confirmed && <Badge>Participation not confirmed</Badge>}
-                      <span className="ml-auto text-xs text-slate-400">{g.source_name}{g.source_url ? <> · <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">source ↗</a></> : ""}</span>
+                    <li key={g.id} className="flex gap-4 px-4 py-3">
+                      <div className="w-16 shrink-0 pt-0.5 text-sm font-bold">{formatInZone(g.starts_at, tz, { hour: "numeric", minute: "2-digit" })}</div>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/athletes/${g.athlete_id}`} className="font-semibold hover:text-brand-700">{g.first_name} {g.last_name}</Link>{g.is_demo ? <> <DemoTag /></> : null}
+                        <span className="text-sm text-slate-500"> · {g.primary_position} · {g.grad_year}</span>
+                        <div className="text-sm text-slate-700">{g.team_name ?? "Team"} vs {g.opponent ?? "TBD"}</div>
+                        <div className="text-xs text-slate-500">{[g.venue, g.city && `${g.city}, ${g.state}`, dist != null && `${Math.round(dist)} mi from campus`].filter(Boolean).join(" · ")}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {g.status === "changed" && <Badge tone="amber">Moved from {fmtDate(g.previous_starts_at, { month: "short", day: "numeric" })}</Badge>}
+                          {g.status === "cancelled" && <Badge tone="red">Canceled</Badge>}
+                          {!g.participation_confirmed && <Badge>Playing not confirmed</Badge>}
+                          {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700 underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
+                        </div>
+                      </div>
                     </li>
                   );
                 })}

@@ -22,16 +22,21 @@ async function main() {
     }
   }
   const db = await getDb();
-  const lead = cfg.staff[0];
-  if (await db.get("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", [lead.email])) {
-    console.log(`A demo for ${lead.email} already exists. Delete data/rc.db (or use a fresh database) to rebuild it.`);
+  const loginEmail = cfg.sharedLogin?.email ?? cfg.staff[0].email ?? "";
+  if (await db.get("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", [loginEmail])) {
+    console.log(`A demo for ${loginEmail} already exists. Delete data/rc.db (or use a fresh database) to rebuild it.`);
     return;
   }
   await createDemoProgram(db, cfg);
   console.log(`\n${cfg.programName} demo is ready. All players in it are fictional.`);
-  console.log("Staff logins (same password for all):");
-  for (const s of cfg.staff) console.log(`  ${s.name.padEnd(16)} ${s.title.padEnd(42)} ${s.email}`);
-  console.log(`  Password: ${cfg.password}`);
+  if (cfg.sharedLogin) {
+    console.log(`Staff login (whole staff): ${cfg.sharedLogin.email} / ${cfg.password}`);
+    console.log(`After signing in, each coach taps their name: ${cfg.staff.map((s) => s.name).join(", ")}`);
+  } else {
+    console.log("Staff logins (same password for all):");
+    for (const s of cfg.staff) console.log(`  ${s.name.padEnd(16)} ${s.title.padEnd(42)} ${s.email}`);
+    console.log(`  Password: ${cfg.password}`);
+  }
 }
 
 main().catch((e) => {

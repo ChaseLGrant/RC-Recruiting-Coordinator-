@@ -7,11 +7,12 @@ import { normalizeState } from "../domain/geo";
 import { parseHeight } from "../domain/metrics";
 import { safeUrl } from "../domain/urls";
 import type { ProviderAthleteRecord } from "../providers/types";
+import { normalizePhone, normalizeXHandle } from "../repo";
 
 export type FieldId =
   | "ignore" | "full_name" | "first_name" | "last_name" | "grad_year" | "position" | "secondary_position" | "high_school"
   | "team" | "city" | "state" | "zip" | "height" | "weight" | "exit_velo" | "sixty" | "inf_velo" | "of_velo" | "fb_velo"
-  | "pop_time" | "gpa" | "email" | "guardian_email" | "phone" | "notes" | "status" | "committed" | "profile_url" | "film_url";
+  | "pop_time" | "gpa" | "email" | "guardian_email" | "phone" | "x_handle" | "notes" | "status" | "committed" | "profile_url" | "film_url";
 
 export const FIELDS: Array<{ id: FieldId; label: string; synonyms: string[] }> = [
   { id: "ignore", label: "Don't import", synonyms: [] },
@@ -37,7 +38,8 @@ export const FIELDS: Array<{ id: FieldId; label: string; synonyms: string[] }> =
   { id: "gpa", label: "GPA", synonyms: ["gpa", "grades", "academic gpa"] },
   { id: "email", label: "Player email", synonyms: ["email", "e mail", "player email", "athlete email"] },
   { id: "guardian_email", label: "Parent email", synonyms: ["parent email", "guardian email", "mom email", "dad email", "parent e mail"] },
-  { id: "phone", label: "Phone (kept in notes)", synonyms: ["phone", "cell", "phone number", "mobile", "parent phone"] },
+  { id: "phone", label: "Player phone", synonyms: ["phone", "cell", "phone number", "mobile", "cell phone", "number", "player phone"] },
+  { id: "x_handle", label: "X / Twitter", synonyms: ["x", "twitter", "x handle", "twitter handle", "x twitter", "twitter x", "handle"] },
   { id: "notes", label: "Notes", synonyms: ["notes", "note", "comments", "comment", "eval", "evaluation", "report", "scouting notes", "thoughts"] },
   { id: "status", label: "Board status / priority", synonyms: ["status", "priority", "tier", "rank", "interest", "board", "level"] },
   { id: "committed", label: "Committed?", synonyms: ["committed", "commitment", "commit", "committed to", "college"] },
@@ -201,7 +203,8 @@ export function applyMapping(headers: string[], rows: string[][], mapping: Field
     const committed = committedRaw
       ? /^(no|n|uncommitted|none|open|-)$/i.test(committedRaw) ? "uncommitted" : "committed"
       : "unknown";
-    const noteParts = [get("notes"), get("phone") ? `Phone: ${get("phone")}` : "", committed === "committed" && !/^(yes|y|true|x)$/i.test(committedRaw) ? `Committed: ${committedRaw}` : ""].filter(Boolean);
+    const phone = normalizePhone(get("phone"));
+    const noteParts = [get("notes"), get("phone") && !phone ? `Phone: ${get("phone")}` : "", committed === "committed" && !/^(yes|y|true|x)$/i.test(committedRaw) ? `Committed: ${committedRaw}` : ""].filter(Boolean);
     const profile = get("profile_url").split(/[\s;,]+/).map((u) => safeUrl(u)).filter((u): u is string => Boolean(u));
     const film = safeUrl(get("film_url"));
     res.rows.push({
@@ -218,6 +221,8 @@ export function applyMapping(headers: string[], rows: string[][], mapping: Field
         zip: get("zip") || null,
         email: get("email") || null,
         guardianEmail: get("guardian_email") || null,
+        phone,
+        xHandle: normalizeXHandle(get("x_handle")),
         commitmentStatus: committed,
         commitmentVerified: false,
         metrics,

@@ -25,12 +25,14 @@ export const SCHEMA: string[] = [
     title TEXT,
     role TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    is_shared INTEGER NOT NULL DEFAULT 0,
     last_brief_at TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id),
+    acting_user_id TEXT,
     expires_at TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
@@ -72,6 +74,8 @@ export const SCHEMA: string[] = [
     commitment_source_id TEXT,
     email TEXT,
     guardian_email TEXT,
+    phone TEXT,
+    x_handle TEXT,
     contact_consent TEXT NOT NULL DEFAULT 'unknown',
     is_minor INTEGER,
     opted_out INTEGER NOT NULL DEFAULT 0,
@@ -318,6 +322,17 @@ export const SCHEMA: string[] = [
     rows_json TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS contacts (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL REFERENCES athletes(id),
+    user_id TEXT,
+    kind TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    note TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_contacts_athlete ON contacts(org_id, athlete_id, occurred_at)`,
   `CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
@@ -325,4 +340,13 @@ export const SCHEMA: string[] = [
     created_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_login_attempts ON login_attempts(email, created_at)`,
+];
+
+/** Column additions for databases created before a column existed. Each is
+ *  attempted once per start; "already exists" errors are ignored. */
+export const COLUMN_MIGRATIONS: string[] = [
+  "ALTER TABLE users ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE sessions ADD COLUMN acting_user_id TEXT",
+  "ALTER TABLE athletes ADD COLUMN phone TEXT",
+  "ALTER TABLE athletes ADD COLUMN x_handle TEXT",
 ];

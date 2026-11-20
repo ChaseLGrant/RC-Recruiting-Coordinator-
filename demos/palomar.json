@@ -1,15 +1,50 @@
 {
-  "_note": "Staff from palomarathletics.com coach pages (some dated 2024) — confirm current staff and titles before sending. Logins are demo-only addresses, not real emails. Put the official logo at demos/palomar-logo.png (or .svg) and re-run.",
+  "_note": "Staff from palomarathletics.com coach pages (some dated 2024) \u2014 confirm current staff and titles before sending. The whole staff signs in with one staff login and taps their name. Put the official logo at demos/palomar-logo.png (or .svg) and re-run.",
   "programName": "Palomar College Baseball (DEMO)",
   "teamName": "Palomar Baseball",
   "campusZip": "92069",
-  "branding": { "primary": "#c8102e", "ink": "#141414", "accent": "#a7a9ac" },
+  "branding": {
+    "primary": "#c8102e",
+    "ink": "#141414",
+    "accent": "#a7a9ac"
+  },
   "staff": [
-    { "name": "Ben Adams", "title": "Head Coach", "role": "head_coach", "email": "ben.adams@palomar.demo" },
-    { "name": "Hayden Carter", "title": "Pitching Coach / Recruiting Coordinator", "role": "assistant_coach", "email": "hayden.carter@palomar.demo" },
-    { "name": "Chase Grant", "title": "Outfield Coach", "role": "assistant_coach", "email": "chase.grant@palomar.demo" },
-    { "name": "Jeff Doyle", "title": "Assistant Coach", "role": "assistant_coach", "email": "jeff.doyle@palomar.demo" }
+    {
+      "name": "Ben Adams",
+      "title": "Head Coach",
+      "role": "head_coach"
+    },
+    {
+      "name": "Hayden Carter",
+      "title": "Pitching Coach / Recruiting Coordinator",
+      "role": "assistant_coach"
+    },
+    {
+      "name": "Chase Grant",
+      "title": "Outfield Coach",
+      "role": "assistant_coach"
+    },
+    {
+      "name": "Jeff Doyle",
+      "title": "Assistant Coach",
+      "role": "assistant_coach"
+    }
   ],
-  "profile": { "name": "2027–28 Middle Infielders · North County", "gradYears": [2027, 2028], "positions": ["SS", "2B"], "radiusMi": 100 },
-  "campName": "Comets Winter Prospect Camp (demo)"
+  "profile": {
+    "name": "2027\u201328 Middle Infielders \u00b7 North County",
+    "gradYears": [
+      2027,
+      2028
+    ],
+    "positions": [
+      "SS",
+      "2B"
+    ],
+    "radiusMi": 100
+  },
+  "campName": "Comets Winter Prospect Camp (demo)",
+  "sharedLogin": {
+    "email": "staff@palomar.demo"
+  },
+  "seedActivity": true
 }

@@ -3,7 +3,7 @@
 // uses conditional requests so unchanged pages cost the site almost nothing.
 
 export const USER_AGENT = "RC-RecruitingCoordinator/1.0 (stat monitor for followed players; +https://theathletemarket.com/rc-bot)";
-const MIN_INTERVAL_MS = Number(process.env.RC_WATCH_MIN_INTERVAL_MS ?? 8000); // per site
+const minIntervalMs = () => Number(process.env.RC_WATCH_MIN_INTERVAL_MS ?? 8000); // per site
 const MAX_BYTES = 3_000_000;
 const TIMEOUT_MS = 20_000;
 
@@ -108,7 +108,7 @@ export async function politeFetch(
   if (!robotsAllows(robots, u.pathname + u.search)) {
     return { status: "blocked_by_robots", detail: `${u.hostname} asks automated tools not to read this page (robots.txt). RC respects that.` };
   }
-  await waitTurn(u.origin, Math.max(MIN_INTERVAL_MS, robots.crawlDelayMs ?? 0));
+  await waitTurn(u.origin, Math.max(minIntervalMs(), robots.crawlDelayMs ?? 0));
   const headers: Record<string, string> = { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" };
   if (prev.etag) headers["If-None-Match"] = prev.etag;
   if (prev.lastModified) headers["If-Modified-Since"] = prev.lastModified;

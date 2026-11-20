@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "zipcodes"],
   experimental: { serverActions: { bodySizeLimit: "5mb" } },
   poweredByHeader: false,
+  // Ship demo configs (and any logo files) with the setup endpoint.
+  outputFileTracingIncludes: { "/api/admin/setup-demo": ["./demos/**/*"] },
   async headers() {
     return [
       {

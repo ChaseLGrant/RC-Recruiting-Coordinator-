@@ -18,6 +18,8 @@ export interface ProviderAthleteRecord {
   zip?: string | null;
   email?: string | null;
   guardianEmail?: string | null;
+  phone?: string | null;
+  xHandle?: string | null;
   commitmentStatus?: "uncommitted" | "committed" | "unknown";
   commitmentVerified?: boolean;
   metrics?: Array<{ key: string; value: number; measuredAt: string | null; verification: Verification; sourceUrl?: string | null; eventName?: string | null }>;

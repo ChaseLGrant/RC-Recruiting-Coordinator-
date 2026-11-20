@@ -2,14 +2,14 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { requireSession } from "@/lib/session";
 import { listApprovals } from "@/lib/repo/approvals";
-import { logoutAction } from "@/app/actions";
+import { logoutAction, switchStaffAction } from "@/app/actions";
 import { BottomTabs, NavLinks } from "@/components/nav";
 import { ROLE_LABEL } from "@/lib/domain/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { ctx, user, org } = await requireSession();
+  const { ctx, user, org, shared } = await requireSession();
   const pending = (await listApprovals(ctx.db, ctx.orgId, ["pending"])).length;
   const b = org.settings.branding;
   const team = b.teamName ?? org.name.replace(/\s*\(.*\)\s*$/, "");
@@ -19,11 +19,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div style={vars} className="team-scope min-h-screen pb-20 md:pb-0">
       {org.isDemo && (
         <div className="bg-[var(--team-accent)] px-4 py-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--team-ink)]">
-          Demo · every player, school and number shown is fictional
+          Demo<span className="hidden sm:inline"> · every player, school and number shown is fictional</span><span className="sm:hidden"> · fictional players</span>
         </div>
       )}
-      <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary)] bg-[var(--team-ink)] text-white">
-        <div className="mx-auto flex h-[72px] max-w-6xl items-center gap-5 px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary)] bg-[var(--team-ink)] pt-[env(safe-area-inset-top)] text-white">
+        <div className="mx-auto flex h-[64px] max-w-6xl items-center gap-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:h-[72px] sm:px-6">
           <Link href="/" className="flex items-center gap-3" aria-label={`${team} home`}>
             {b.logoDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -50,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link href="/approvals" className="block px-4 py-2.5 hover:bg-slate-50">Everything waiting on me</Link>
               <Link href="/impact" className="block px-4 py-2.5 hover:bg-slate-50">Time RC saved you</Link>
               <Link href="/settings" className="block px-4 py-2.5 hover:bg-slate-50">Settings, staff & branding</Link>
+              {shared && <form action={switchStaffAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left hover:bg-slate-50">Switch coach</button></form>}
               <form action={logoutAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left text-slate-500 hover:bg-slate-50">Sign out</button></form>
             </div>
           </details>

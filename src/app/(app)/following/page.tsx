@@ -6,6 +6,7 @@ import { nextGames } from "@/lib/services";
 import { toggleFollowAction } from "@/app/actions";
 import { Empty, Flash, LinkButton, timeAgo } from "@/components/ui";
 import { PlayerCard } from "@/components/player-card";
+import { CONTACT_KINDS, lastContacts } from "@/lib/repo/contacts";
 
 const BOARD = [
   { id: "priority", label: "Priority" },
@@ -33,6 +34,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
   const film = ids.length ? await ctx.db.all<{ athlete_id: string; n: number }>(`SELECT athlete_id, COUNT(*) AS n FROM film_links WHERE org_id = ? AND athlete_id IN (${ids.map(() => "?").join(",")}) GROUP BY athlete_id`, [ctx.orgId, ...ids]) : [];
   const filmBy = new Map(film.map((f) => [f.athlete_id, Number(f.n)]));
   const rows = follows.filter((f) => !sp.status || f.board_status === sp.status);
+  const last = await lastContacts(ctx.db, ctx.orgId, ids);
   const here = `/following${sp.status ? `?status=${sp.status}` : ""}`;
 
   return (
@@ -68,7 +70,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
             const recent = changes.filter((c) => c.athlete_id === a.id)[0];
             return (
               <div key={a.id} className="flex flex-col gap-2">
-                <PlayerCard athlete={a} metrics={resolveAll(obs.filter((o) => o.athleteId === a.id))} statKeys={["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"]} following nextGame={games.get(a.id)} filmCount={filmBy.get(a.id)} returnTo={here} boardStatus={f.board_status} />
+                <PlayerCard athlete={a} metrics={resolveAll(obs.filter((o) => o.athleteId === a.id))} statKeys={["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"]} following nextGame={games.get(a.id)} filmCount={filmBy.get(a.id)} returnTo={here} boardStatus={f.board_status} lastContact={last.get(a.id) ? { label: CONTACT_KINDS[last.get(a.id)!.kind]?.label ?? "Contact", who: last.get(a.id)!.user_name, when: last.get(a.id)!.occurred_at } : null} />
                 <div className="flex flex-wrap items-center gap-2 px-1 text-xs text-slate-500">
                   {recent && <span className="rounded-[3px] bg-sky-50 px-2.5 py-1 text-sky-800">New: {recent.message.replace(`${a.firstName} ${a.lastName}: `, "")} · {timeAgo(recent.created_at)}</span>}
                   <form action={toggleFollowAction} className="ml-auto flex items-center gap-1">

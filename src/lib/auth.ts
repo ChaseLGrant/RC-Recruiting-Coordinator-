@@ -86,3 +86,69 @@ export async function createUser(db: Db, orgId: string, u: { email: string; name
   ]);
   return id;
 }
+
+// ---------- shared staff login ----------
+// One email + password for the whole staff. After signing in, each person
+// picks their name ("Who's using RC?") so notes and contacts are attributed.
+
+export interface SessionInfo {
+  login: User; // the account that signed in (may be the shared staff login)
+  acting: User | null; // the staff member using it (same as login for personal accounts)
+}
+
+export async function sessionInfo(db: Db, token: string | undefined): Promise<SessionInfo | null> {
+  if (!token) return null;
+  const s = await db.get<{ user_id: string; acting_user_id: string | null }>("SELECT user_id, acting_user_id FROM sessions WHERE id = ? AND expires_at > ?", [tokenHash(token), nowIso()]);
+  if (!s) return null;
+  const loginRow = await db.get("SELECT * FROM users WHERE id = ?", [s.user_id]);
+  if (!loginRow) return null;
+  const login = userFromRow(loginRow);
+  if (!login.isShared) return { login, acting: login };
+  if (!s.acting_user_id) return { login, acting: null };
+  const actingRow = await db.get("SELECT * FROM users WHERE id = ? AND org_id = ? AND is_shared = 0", [s.acting_user_id, login.orgId]);
+  return { login, acting: actingRow ? userFromRow(actingRow) : null };
+}
+
+export async function setActingUser(db: Db, token: string, staffUserId: string) {
+  const info = await sessionInfo(db, token);
+  if (!info?.login.isShared) throw new Error("Not a shared staff login");
+  const staff = await db.get("SELECT id FROM users WHERE id = ? AND org_id = ? AND is_shared = 0", [staffUserId, info.login.orgId]);
+  if (!staff) throw new Error("Pick someone from your staff");
+  await db.run("UPDATE sessions SET acting_user_id = ? WHERE id = ?", [staffUserId, tokenHash(token)]);
+}
+
+export async function clearActingUser(db: Db, token: string) {
+  await db.run("UPDATE sessions SET acting_user_id = NULL WHERE id = ?", [tokenHash(token)]);
+}
+
+/** Creates or updates the program's shared staff login. */
+export async function setSharedLogin(db: Db, orgId: string, email: string, password: string, teamName: string): Promise<string> {
+  if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+  const e = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) throw new Error("Enter a valid email address.");
+  const existing = await db.get<{ id: string; org_id: string }>("SELECT id, org_id FROM users WHERE LOWER(email) = ?", [e]);
+  if (existing && existing.org_id !== orgId) throw new Error("That email is already used by another account.");
+  const shared = await db.get<{ id: string }>("SELECT id FROM users WHERE org_id = ? AND is_shared = 1", [orgId]);
+  if (shared) {
+    if (existing && existing.id !== shared.id) throw new Error("That email belongs to a staff member's personal login.");
+    await db.run("UPDATE users SET email = ?, password_hash = ?, name = ? WHERE id = ?", [e, hashPassword(password), `${teamName} staff`, shared.id]);
+    return shared.id;
+  }
+  if (existing) throw new Error("That email belongs to a staff member's personal login.");
+  const id = newId();
+  await db.run("INSERT INTO users (id, org_id, email, name, title, role, password_hash, is_shared, created_at) VALUES (?,?,?,?,?,?,?,1,?)", [
+    id, orgId, e, `${teamName} staff`, "Shared staff login", "viewer", hashPassword(password), nowIso(),
+  ]);
+  return id;
+}
+
+/** Adds a staff member who signs in through the shared login (no personal password). */
+export async function addStaffProfile(db: Db, orgId: string, s: { name: string; title?: string | null; role: Role }): Promise<string> {
+  if (!s.name.trim()) throw new Error("Enter the coach's name.");
+  const id = newId();
+  // Unique placeholder address; profiles can't sign in on their own (empty password hash never verifies).
+  await db.run("INSERT INTO users (id, org_id, email, name, title, role, password_hash, is_shared, created_at) VALUES (?,?,?,?,?,?,?,0,?)", [
+    id, orgId, `profile-${id}@staff.rc.local`, s.name.trim(), s.title?.trim() || null, s.role, "", nowIso(),
+  ]);
+  return id;
+}
