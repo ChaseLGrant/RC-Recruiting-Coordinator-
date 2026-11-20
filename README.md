@@ -102,21 +102,28 @@ RC **never scrapes** and never claims to have searched a source it can't access.
 
 To add a licensed provider, implement `sync()` in `src/lib/providers/licensed.ts` against the API spec supplied under your agreement. The rest of RC (provenance, identity matching, missions, the brief) works with it automatically.
 
-## Production deployment (Supabase / Postgres)
+## Put it online (about 15 minutes, free to start)
 
-1. Create a Supabase project and run the schema migration, either with the Supabase CLI or by pasting it into the SQL editor:
+You need a Vercel account (you already have one) and this GitHub repo.
+
+1. **Create the site.** On vercel.com, click **Add New → Project**, pick this repository and the `claude/determined-bohr-nzx42q` branch (or merge it to `main` first), then click **Deploy**. The first deploy works without a database, but data won't persist until step 2.
+2. **Add the database.** In the Vercel project, go to **Storage → Create Database → Supabase** (or Neon), and connect it to the project. Vercel adds `POSTGRES_URL` automatically, and RC creates its tables on first start.
+3. **Add one secret.** Under **Settings → Environment Variables**, add `CRON_SECRET` with any long random value (for example, generate one with a password manager). Then go to **Deployments → ⋯ → Redeploy**.
+4. **Build the Palomar demo** (once). Run this from any terminal, or ask Claude to run it:
 
    ```bash
-   supabase db push
+   curl -X POST -H "Authorization: Bearer YOUR_CRON_SECRET" "https://YOUR-SITE.vercel.app/api/admin/setup-demo?name=palomar&password=CHOOSE-A-STAFF-PASSWORD"
    ```
 
-   The schema is in `supabase/migrations/0001_rc_schema.sql`. RLS is enabled with **no policies**, so the public API keys can't read any athlete data. Only RC's server connection can.
-2. Set `DATABASE_URL` (the Postgres connection string) and `CRON_SECRET`. See `.env.example`.
-3. Deploy, for example to Vercel. `vercel.json` sets up an hourly cron on `/api/cron`, which runs any missions that are due. Alternatively, run `npm run worker` on any always-on host.
-4. Optional: set `RESEND_API_KEY` and `RC_EMAIL_FROM` for email. Sending also has to be turned on in Settings, and every send is still a coach's click.
-5. Optional: set `ANTHROPIC_API_KEY` to enable the AI provider abstraction (`src/lib/ai/provider.ts`). AI is limited to turning a search request into criteria, and the coach still reviews the result. It is never used to grade athletes.
+   Sign in with `staff@palomar.demo` and that password, then tap a coach's name. On a phone, use Share → **Add to Home Screen** to install it like an app.
+5. **Keep it live hourly.** In GitHub, go to **Settings → Secrets and variables → Actions** and add `RC_URL` (your site address) and `CRON_SECRET` (the same value). The included workflow `.github/workflows/rc-hourly.yml` then runs saved searches and re-checks linked stat and schedule pages every hour. Vercel's own cron (in `vercel.json`) also runs once a day as a backup.
 
-The same SQL runs on SQLite and Postgres. The full workflow test suite passes on both:
+**Optional:**
+- **Email sending:** `RESEND_API_KEY`, `RC_EMAIL_FROM`.
+- **Your own domain:** in Vercel, go to **Settings → Domains**.
+- **Running your own server instead:** `npm run build && npm start` plus `npm run worker` on any Node 22 host with `DATABASE_URL` set.
+
+The same SQL runs on SQLite and Postgres. To run the full test suite against Postgres:
 
 ```bash
 PG_TEST_URL=postgresql://user@localhost:5432/rc_test npm test
