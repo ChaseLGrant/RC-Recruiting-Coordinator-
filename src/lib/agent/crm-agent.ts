@@ -15,6 +15,7 @@ import { validFor } from "../watch/extract";
 import { getAthlete, getOrg, listObservations, logEvent, type AthleteRecord } from "../repo";
 import { resolveAll } from "../domain/provenance";
 import { createApproval } from "../repo/approvals";
+import { aiAccess } from "./entitlement";
 
 export const AGENT_MODEL = process.env.RC_AGENT_MODEL ?? "claude-opus-5-5";
 const MAX_SEARCHES = 6;
@@ -146,7 +147,7 @@ export function validateUpdates(raw: unknown, searchedUrls: Set<string>, a: Athl
 }
 
 export interface AgentRunResult {
-  status: "updates" | "no_changes" | "identity_unsure" | "error" | "refused" | "not_configured";
+  status: "updates" | "no_changes" | "identity_unsure" | "error" | "refused" | "not_configured" | "not_included";
   proposed: number;
   note: string;
   costCents: number;
@@ -158,6 +159,8 @@ const PRICE = { input: 4, output: 20, perSearch: 0.01 };
 export async function researchPlayer(db: Db, orgId: string, athleteId: string, opts: { client?: AgentClient | null; runId?: string | null } = {}): Promise<AgentRunResult> {
   const client = opts.client === undefined ? getAgentClient() : opts.client;
   if (!client) return { status: "not_configured", proposed: 0, note: "AI research isn't connected (add ANTHROPIC_API_KEY).", costCents: 0 };
+  const access = await aiAccess(db, await getOrg(db, orgId));
+  if (!access.canRun) return { status: "not_included", proposed: 0, note: access.message, costCents: 0 };
   const a = await getAthlete(db, orgId, athleteId);
   if (!a) return { status: "error", proposed: 0, note: "Player not found", costCents: 0 };
   if (a.optedOut) return { status: "error", proposed: 0, note: "Player opted out", costCents: 0 };
@@ -253,9 +256,11 @@ export async function runAgentBatch(db: Db, opts: { client?: AgentClient | null;
     if (Date.now() > deadline) break;
     const org = await getOrg(db, org_id);
     if (!org.settings.agent.enabled) continue;
+    const access = await aiAccess(db, org);
+    if (!access.automatic) continue; // automatic research is the paid add-on; trials are manual only
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
     const today = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM agent_runs WHERE org_id = ? AND ran_at > ?", [org_id, dayAgo]);
-    let budget = Math.min(opts.perOrg ?? Number(process.env.RC_AGENT_PER_RUN ?? 10), org.settings.agent.maxPerDay - Number(today?.n ?? 0));
+    let budget = Math.min(opts.perOrg ?? Number(process.env.RC_AGENT_PER_RUN ?? 10), org.settings.agent.maxPerDay - Number(today?.n ?? 0), access.monthlyLimit - access.usedThisMonth);
     if (budget <= 0) continue;
     const cutoff = new Date(Date.now() - org.settings.agent.everyDays * 86_400_000).toISOString();
     const requested = org.settings.agent.boardRequestedAt;

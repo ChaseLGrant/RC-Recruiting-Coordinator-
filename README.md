@@ -90,6 +90,12 @@ The demo is built from the program's campus, colors and staff, with fictional pl
   - RC then searches for his pages to approve.
 - **Not tested against the live search services or real MaxPreps/Perfect Game pages yet** (the development environment can't reach them). The request formats are covered by tests with simulated responses. Watch the first real searches.
 
+## Plans: free RC, paid AI research add-on
+
+- **Free for every school:** search, My Players, contact log, staff notes, list import, add a player, live stats and schedules from linked pages, the page finder, camps, and the shared staff login.
+- **AI research is a paid add-on.** Every school gets `RC_AI_TRIAL_CHECKS` (default 25) free manual checks. Automatic board-wide research needs the add-on, which RC owners turn on per school with a monthly check limit.
+- **Requests and your owner page.** Schools tap "Request AI research". RC owners (emails in `RC_ADMIN_EMAILS`) see the requests at `/admin`, turn the add-on on or off, set limits, and see each school's AI usage. A school can't change its own plan.
+
 ## AI research agent (keeps every board current)
 
 On a schedule (every 7 days per player by default, up to 25 players a day per program), RC's agent researches each player on a coach's board using Claude (`claude-opus-5-5`) with web search. It looks for new stats, commitments, school or team changes, upcoming games, film, socials and news, and proposes each one as an update with the page it came from and a quote.

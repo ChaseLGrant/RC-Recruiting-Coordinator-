@@ -8,12 +8,13 @@ import { listTrackedPages } from "@/lib/watch/runner";
 import { listCandidates, listLinks } from "@/lib/finder/finder";
 import { getSearchProvider } from "@/lib/finder/search";
 import { getAgentClient } from "@/lib/agent/crm-agent";
+import { aiAccess } from "@/lib/agent/entitlement";
 import { listApprovals } from "@/lib/repo/approvals";
 import { ApprovalCard } from "@/components/approval-card";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
-import { researchNowAction, findPagesAction, decideLinksAction, deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { requestAiAddonAction, researchNowAction, findPagesAction, decideLinksAction, deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
 import { Avatar, Badge, Button, Card, Flash, Input, Label, Select, fmtDate, timeAgo } from "@/components/ui";
 import { LogContactForm } from "@/components/contact-log";
 import { CONTACT_KINDS, contactCounts, listContacts, type ContactKind } from "@/lib/repo/contacts";
@@ -43,6 +44,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
   const [links, pending] = await Promise.all([listLinks(ctx.db, ctx.orgId, a.id), listCandidates(ctx.db, ctx.orgId, { athleteId: a.id, status: "pending" })]);
   const searchReady = Boolean(getSearchProvider());
   const agentReady = Boolean(getAgentClient());
+  const access = await aiAccess(ctx.db, org);
   const pendingUpdates = (await listApprovals(ctx.db, ctx.orgId, ["pending", "saved"])).filter((x) => x.kind === "crm_update" && x.athleteId === a.id);
   const lastResearch = await ctx.db.get<{ ran_at: string; note: string | null }>("SELECT ran_at, note FROM agent_runs WHERE org_id = ? AND athlete_id = ? ORDER BY ran_at DESC LIMIT 1", [ctx.orgId, a.id]);
 
@@ -176,14 +178,22 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
-          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{agentReady ? "Update with AI now" : "AI not connected"}</button></form>}>
+          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{!agentReady ? "AI not connected" : access.canRun ? "Update with AI now" : "Add AI research"}</button></form>}>
             {pendingUpdates.length > 0 ? (
               <div className="space-y-3">{pendingUpdates.map((ap) => <ApprovalCard key={ap.id} a={ap} returnTo={`${here}#research`} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} />)}</div>
             ) : (
               <p className="text-sm text-slate-500">
                 {lastResearch ? <>Last checked {timeAgo(lastResearch.ran_at)}: {lastResearch.note}</> : agentReady ? "RC's research agent hasn't checked this player yet. It looks for new stats, commitments, team changes, games, film and news, and you approve every change." : "Connect AI research in Settings and RC will check this player for new stats, commitments, team changes, games, film and news. You approve every change."}
-                {lastResearch && ` RC checks again every ${org.settings.agent.everyDays} days.`}
+                {lastResearch && access.automatic && ` RC checks again every ${org.settings.agent.everyDays} days.`}
               </p>
+            )}
+            {agentReady && access.mode !== "addon" && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                <span>{access.message}</span>
+                {org.settings.plan.requestedAt ? <Badge>Requested {timeAgo(org.settings.plan.requestedAt)}</Badge> : (
+                  <form action={requestAiAddonAction}><input type="hidden" name="returnTo" value={`${here}#research`} /><button className="font-bold uppercase tracking-wider text-brand-700 hover:underline">Add automatic AI research</button></form>
+                )}
+              </div>
             )}
           </Card>
 

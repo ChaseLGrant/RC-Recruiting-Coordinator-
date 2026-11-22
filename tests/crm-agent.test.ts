@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
 import { createDb } from "@/lib/db";
 import { createProgram } from "@/lib/onboarding";
-import { createSource, getAthlete, listAthletes, listNotes, setFollow, type Ctx } from "@/lib/repo";
+import { createSource, getAthlete, getOrg, listAthletes, listNotes, setFollow, updateOrgSettings, type Ctx } from "@/lib/repo";
+import { aiAccess } from "@/lib/agent/entitlement";
 import { ingestRecords } from "@/lib/ingest";
 import { researchPlayer, runAgentBatch, getAgentClient, type AgentClient } from "@/lib/agent/crm-agent";
 import { decideApproval, listApprovals } from "@/lib/repo/approvals";
@@ -106,7 +107,11 @@ describe("AI research agent", () => {
     const { db, ctx, a } = await setup();
     expect((await researchPlayer(db, ctx.orgId, a.id, { client: null })).status).toBe("not_configured");
     const client = fakeClient({ identity: { confident: true, reason: "ok" }, updates: [] }, [MP]);
+    // Free schools: no automatic research (trial checks are manual only).
     let batch = await runAgentBatch(db, { client });
+    expect(batch).toEqual([]);
+    await updateOrgSettings({ ...ctx, role: "system" }, { plan: { aiResearch: true, aiMonthlyLimit: 400, requestedAt: null, enabledAt: null } });
+    batch = await runAgentBatch(db, { client });
     expect(batch[0]).toMatchObject({ researched: 1 });
     batch = await runAgentBatch(db, { client }); // checked recently → not due again
     expect(batch[0]).toMatchObject({ researched: 0 });
@@ -114,5 +119,32 @@ describe("AI research agent", () => {
     await db.run("DELETE FROM agent_runs");
     batch = await runAgentBatch(db, { client });
     expect(batch[0]).toMatchObject({ researched: 0 });
+  });
+});
+
+describe("free trial and paid add-on", () => {
+  it("gives free schools a limited number of manual checks, then asks them to add the add-on", async () => {
+    process.env.RC_AI_TRIAL_CHECKS = "2";
+    const { db, ctx, a } = await setup();
+    const client = fakeClient({ identity: { confident: true, reason: "ok" }, updates: [] }, [MP]);
+    let acc = await aiAccess(db, await getOrg(db, ctx.orgId));
+    expect(acc).toMatchObject({ mode: "trial", canRun: true, automatic: false });
+    expect((await researchPlayer(db, ctx.orgId, a.id, { client })).status).toBe("no_changes");
+    expect((await researchPlayer(db, ctx.orgId, a.id, { client })).status).toBe("no_changes");
+    const r = await researchPlayer(db, ctx.orgId, a.id, { client });
+    expect(r.status).toBe("not_included");
+    expect(r.note).toMatch(/used all 2 free AI checks/);
+    expect(client.calls).toHaveLength(2); // no AI call (and no cost) once the trial is used up
+    delete process.env.RC_AI_TRIAL_CHECKS;
+  });
+  it("the add-on enforces each school's monthly limit, and schools can't turn it on themselves", async () => {
+    const { db, ctx, a } = await setup();
+    await expect(updateOrgSettings(ctx, { plan: { aiResearch: true, aiMonthlyLimit: 9999, requestedAt: null, enabledAt: null } })).rejects.toThrow(/made by RC/);
+    await updateOrgSettings({ ...ctx, role: "system" }, { plan: { aiResearch: true, aiMonthlyLimit: 1, requestedAt: null, enabledAt: null } });
+    const client = fakeClient({ identity: { confident: true, reason: "ok" }, updates: [] }, [MP]);
+    expect((await researchPlayer(db, ctx.orgId, a.id, { client })).status).toBe("no_changes");
+    const second = await researchPlayer(db, ctx.orgId, a.id, { client });
+    expect(second.status).toBe("not_included");
+    expect(second.note).toMatch(/Monthly AI research limit reached/);
   });
 });

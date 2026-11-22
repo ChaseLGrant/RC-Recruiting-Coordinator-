@@ -710,7 +710,7 @@ export async function researchNowAction(fd: FormData) {
   await audit(ctx, "ai_research", "athlete", id, { status: r.status, costCents: r.costCents });
   revalidatePath("/", "layout");
   const msg = r.status === "updates" ? `RC found ${r.proposed} update${r.proposed > 1 ? "s" : ""}. Review them below.` : r.note;
-  redirect(withFlash(`/athletes/${id}#research`, msg, r.status === "error" || r.status === "not_configured" ? "err" : "ok"));
+  redirect(withFlash(`/athletes/${id}#research`, msg, r.status === "error" || r.status === "not_configured" || r.status === "not_included" ? "err" : "ok"));
 }
 
 export async function updateBoardAction() {
@@ -727,4 +727,33 @@ export async function updateAgentSettingsAction(fd: FormData) {
   await updateOrgSettings(ctx, { agent: { ...org.settings.agent, enabled: Boolean(str(fd, "enabled")), everyDays: Number(str(fd, "everyDays")) || 7, maxPerDay: Number(str(fd, "maxPerDay")) || 25 } });
   revalidatePath("/settings");
   redirect(withFlash("/settings#agent", "AI research settings saved."));
+}
+
+// ---------- paid add-on: requests (schools) and switching it on (RC owners) ----------
+
+export async function requestAiAddonAction(fd: FormData) {
+  const { ctx, org, user } = await requireSession();
+  await updateOrgSettings({ ...ctx, role: "system" }, { plan: { ...org.settings.plan, requestedAt: new Date().toISOString() } });
+  await audit(ctx, "request_ai_addon", "org", ctx.orgId, { by: user.name });
+  revalidatePath("/", "layout");
+  redirect(withFlash(str(fd, "returnTo") || "/settings#agent", "Request sent. The RC team will reach out to set up AI research for your program."));
+}
+
+function isOwner(email: string) {
+  return (process.env.RC_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());
+}
+
+export async function adminSetAddonAction(fd: FormData) {
+  const { user, ctx } = await requireSession();
+  if (!isOwner(user.email)) redirect("/");
+  const orgId = str(fd, "orgId");
+  const { getOrg } = await import("@/lib/repo");
+  const target = await getOrg(ctx.db, orgId);
+  const on = str(fd, "on") === "1";
+  const limit = Number(str(fd, "limit")) || target.settings.plan.aiMonthlyLimit;
+  await updateOrgSettings({ db: ctx.db, orgId, userId: ctx.userId, role: "system" }, {
+    plan: { ...target.settings.plan, aiResearch: on, aiMonthlyLimit: limit, enabledAt: on ? (target.settings.plan.enabledAt ?? new Date().toISOString()) : null },
+  });
+  revalidatePath("/admin");
+  redirect(withFlash("/admin", `${target.name}: AI research ${on ? `on (${limit} checks/month)` : "off"}.`));
 }

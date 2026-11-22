@@ -51,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link href="/approvals" className="block px-4 py-2.5 hover:bg-slate-50">Everything waiting on me</Link>
               <Link href="/impact" className="block px-4 py-2.5 hover:bg-slate-50">Time RC saved you</Link>
               <Link href="/settings" className="block px-4 py-2.5 hover:bg-slate-50">Settings, staff & branding</Link>
+              {(process.env.RC_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).includes(user.email.toLowerCase()) && <Link href="/admin" className="block px-4 py-2.5 font-semibold text-[var(--team-primary)] hover:bg-slate-50">RC owner page</Link>}
               {shared && <form action={switchStaffAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left hover:bg-slate-50">Switch coach</button></form>}
               <form action={logoutAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left text-slate-500 hover:bg-slate-50">Sign out</button></form>
             </div>

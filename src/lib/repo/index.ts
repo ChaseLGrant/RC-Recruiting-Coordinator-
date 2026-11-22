@@ -34,6 +34,8 @@ export interface OrgSettings {
   timezone: string;
   /** AI research agent that keeps the board current. */
   agent: { enabled: boolean; everyDays: number; maxPerDay: number; boardRequestedAt: string | null };
+  /** Paid add-ons. Only RC's owners change this (from /admin), never a school's own settings. */
+  plan: { aiResearch: boolean; aiMonthlyLimit: number; requestedAt: string | null; enabledAt: string | null };
 }
 
 export interface Branding {
@@ -93,6 +95,12 @@ export function orgFromRow(r: Row): Org {
         maxPerDay: Math.min(500, Math.max(1, Number(s.agent?.maxPerDay ?? 25))),
         boardRequestedAt: s.agent?.boardRequestedAt ?? null,
       },
+      plan: {
+        aiResearch: Boolean(s.plan?.aiResearch),
+        aiMonthlyLimit: Math.max(0, Number(s.plan?.aiMonthlyLimit ?? 400)),
+        requestedAt: s.plan?.requestedAt ?? null,
+        enabledAt: s.plan?.enabledAt ?? null,
+      },
       pageWatch: { enabled: s.pageWatch?.enabled ?? true, everyHours: Math.min(168, Math.max(6, Number(s.pageWatch?.everyHours ?? 12))) },
     },
   };
@@ -106,6 +114,7 @@ export async function getOrg(db: Db, orgId: string): Promise<Org> {
 
 export async function updateOrgSettings(ctx: Ctx, patch: Partial<OrgSettings>) {
   authorize(ctx, "manage_settings");
+  if ("plan" in patch && ctx.role !== "system") throw new Error("Plan changes are made by RC, not from program settings.");
   const org = await getOrg(ctx.db, ctx.orgId);
   const next = { ...org.settings, ...patch };
   await ctx.db.run("UPDATE orgs SET settings_json = ? WHERE id = ?", [JSON.stringify(next), ctx.orgId]);
