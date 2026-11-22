@@ -408,6 +408,33 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 
 CREATE INDEX IF NOT EXISTS idx_agent_runs ON agent_runs(org_id, athlete_id, ran_at);
 
+CREATE TABLE IF NOT EXISTS prospects (
+    id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    program_name TEXT NOT NULL,
+    team_name TEXT,
+    campus_zip TEXT NOT NULL,
+    branding_json TEXT NOT NULL,
+    coach_name TEXT,
+    coach_email TEXT,
+    conference TEXT,
+    org_id TEXT,
+    visits INTEGER NOT NULL DEFAULT 0,
+    last_visit_at TEXT,
+    opens INTEGER NOT NULL DEFAULT 0,
+    first_opened_at TEXT,
+    last_opened_at TEXT,
+    created_at TEXT NOT NULL
+  );
+
+CREATE TABLE IF NOT EXISTS prospect_demos (
+    org_id TEXT PRIMARY KEY,
+    prospect_id TEXT NOT NULL,
+    views INTEGER NOT NULL DEFAULT 0,
+    last_seen_at TEXT,
+    created_at TEXT NOT NULL
+  );
+
 CREATE TABLE IF NOT EXISTS invites (
     id TEXT PRIMARY KEY,
     org_id TEXT NOT NULL REFERENCES orgs(id),
@@ -454,5 +481,7 @@ ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE link_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE athlete_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prospects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prospect_demos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

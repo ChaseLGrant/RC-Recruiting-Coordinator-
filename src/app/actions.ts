@@ -72,12 +72,43 @@ export async function tryDemoAction() {
   redirect("/?welcome=demo");
 }
 
-export async function logoutAction() {
+export async function openPreviewAction(fd: FormData) {
+  const slug = str(fd, "slug");
+  let userId: string;
+  try {
+    const { openPreview } = await import("@/lib/outreach/prospects");
+    ({ userId } = await openPreview(await getDb(), slug));
+  } catch (e) {
+    redirect(`/p/${encodeURIComponent(slug)}?error=` + encodeURIComponent(e instanceof Error ? e.message : "Couldn't open the demo."));
+  }
+  await startSession(userId);
+  redirect("/?welcome=demo");
+}
+
+/** From inside a school's demo: "Set this up for real" → the school's own account setup. */
+export async function startFromPreviewAction() {
+  const { ctx, org } = await requireSession();
+  const { prospectForDemo, startFromPreview } = await import("@/lib/outreach/prospects");
+  const p = org.isDemo ? await prospectForDemo(ctx.db, org.id) : null;
+  if (!p) redirect("/signup");
+  let token: string;
+  try {
+    token = await startFromPreview(ctx.db, p.slug);
+  } catch (e) {
+    redirect(withFlash("/", e instanceof Error ? e.message : "Couldn't start setup.", "err"));
+  }
+  const jar = await cookies();
+  await destroySession(ctx.db, jar.get(SESSION_COOKIE)?.value);
+  jar.delete(SESSION_COOKIE);
+  redirect(`/join/${token}`);
+}
+
+export async function logoutAction(fd?: FormData) {
   const db = await getDb();
   const jar = await cookies();
   await destroySession(db, jar.get(SESSION_COOKIE)?.value);
   jar.delete(SESSION_COOKIE);
-  redirect("/login");
+  redirect(fd && str(fd, "to") === "/signup" ? "/signup" : "/login");
 }
 
 export async function signupAction(fd: FormData) {
@@ -849,6 +880,31 @@ export async function adminCreateSchoolAction(fd: FormData) {
   }
   revalidatePath("/admin");
   redirect(withFlash("/admin", `School created. Email this one-time link to the head coach (it works once, for 30 days): ${link}`));
+}
+
+export async function adminImportProspectsAction(fd: FormData) {
+  const { ctx } = await requireOwner();
+  const file = fd.get("file");
+  let msg: string;
+  try {
+    if (!(file instanceof File) || file.size === 0) throw new Error("Choose your school list (CSV).");
+    if (file.size > 4_000_000) throw new Error("That file is over 4 MB. Split it into smaller lists.");
+    const { importProspects } = await import("@/lib/outreach/prospects");
+    const r = await importProspects(ctx.db, await file.text());
+    await audit(ctx, "prospects_imported", "org", ctx.orgId, { added: r.added, updated: r.updated });
+    msg = `${r.added} schools added, ${r.updated} updated, ${r.logos} logos downloaded.${r.problems.length ? ` ${r.problems.length} notes: ${r.problems.slice(0, 4).join(" ")}${r.problems.length > 4 ? " …" : ""}` : ""}`;
+  } catch (e) {
+    redirect(withFlash("/admin/outreach", e instanceof Error ? e.message : "Couldn't read that list.", "err"));
+  }
+  revalidatePath("/admin/outreach");
+  redirect(withFlash("/admin/outreach", msg));
+}
+
+export async function adminDeleteProspectAction(fd: FormData) {
+  const { ctx } = await requireOwner();
+  await ctx.db.run("DELETE FROM prospects WHERE id = ? AND org_id IS NULL", [str(fd, "id")]);
+  revalidatePath("/admin/outreach");
+  redirect(withFlash("/admin/outreach", "Removed."));
 }
 
 export async function adminNewInviteAction(fd: FormData) {

@@ -162,17 +162,20 @@ export const GUEST_EMAIL_DOMAIN = "guest.rc.local";
 export const GUEST_DEMOS_PER_HOUR = () => Math.max(0, Number(process.env.RC_GUEST_DEMOS_PER_HOUR ?? 60));
 
 /** "Try RC now": a private, throwaway demo with sample players. No sign-up. */
-export async function createGuestDemo(db: Db): Promise<{ orgId: string; userId: string }> {
+export interface DemoLook { programName?: string; teamName?: string | null; campusZip?: string; branding?: Partial<Branding> }
+
+export async function createGuestDemo(db: Db, look: DemoLook = {}): Promise<{ orgId: string; userId: string }> {
   const since = new Date(Date.now() - 3_600_000).toISOString();
   const recent = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM users WHERE email LIKE ? AND role = 'head_coach' AND created_at >= ?", [`%@${GUEST_EMAIL_DOMAIN}`, since]);
   if (Number(recent?.n ?? 0) >= GUEST_DEMOS_PER_HOUR()) throw new Error("Lots of people are trying RC right now. Try again in a few minutes.");
   const tag = randomBytes(6).toString("hex");
   return createDemoProgram(db, {
-    programName: "Demo State University (DEMO — fictional data)",
-    teamName: "Demo State Baseball",
-    campusZip: "78712",
+    programName: look.programName ? `${look.programName} (DEMO — fictional players)` : "Demo State University (DEMO — fictional data)",
+    teamName: look.teamName ?? (look.programName ? null : "Demo State Baseball") ?? undefined,
+    campusZip: look.campusZip ?? "78712",
+    branding: look.branding,
     staff: [
-      { name: "You (Head Coach)", title: "Head Baseball Coach (demo)", role: "head_coach", email: `guest-${tag}@${GUEST_EMAIL_DOMAIN}` },
+      { name: "Coach (you)", title: "Head Baseball Coach (demo)", role: "head_coach", email: `guest-${tag}@${GUEST_EMAIL_DOMAIN}` },
       { name: "Assistant Coach", title: "Recruiting Coordinator (demo)", role: "assistant_coach", email: `guest-${tag}-staff@${GUEST_EMAIL_DOMAIN}` },
     ],
     password: randomBytes(24).toString("base64url"), // never shown; the guest is signed in directly

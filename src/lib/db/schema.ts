@@ -374,6 +374,31 @@ export const SCHEMA: string[] = [
     ran_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_agent_runs ON agent_runs(org_id, athlete_id, ran_at)`,
+  `CREATE TABLE IF NOT EXISTS prospects (
+    id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    program_name TEXT NOT NULL,
+    team_name TEXT,
+    campus_zip TEXT NOT NULL,
+    branding_json TEXT NOT NULL,
+    coach_name TEXT,
+    coach_email TEXT,
+    conference TEXT,
+    org_id TEXT,
+    visits INTEGER NOT NULL DEFAULT 0,
+    last_visit_at TEXT,
+    opens INTEGER NOT NULL DEFAULT 0,
+    first_opened_at TEXT,
+    last_opened_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS prospect_demos (
+    org_id TEXT PRIMARY KEY,
+    prospect_id TEXT NOT NULL,
+    views INTEGER NOT NULL DEFAULT 0,
+    last_seen_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS invites (
     id TEXT PRIMARY KEY,
     org_id TEXT NOT NULL REFERENCES orgs(id),

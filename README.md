@@ -90,22 +90,40 @@ The demo is built from the program's campus, colors and staff, with fictional pl
   - RC then searches for his pages to approve.
 - **Not tested against the live search services or real MaxPreps/Perfect Game pages yet** (the development environment can't reach them). The request formats are covered by tests with simulated responses. Watch the first real searches.
 
+## Reaching every program (outreach & tracking)
+
+Owner page → **Outreach** (`/admin/outreach`):
+
+1. **Add schools.** Upload a CSV with these columns: Program, Team, ZIP, Primary color, Secondary color, Accent color, Logo URL, Coach, Email, Conference. Only Program and ZIP are required, and there's a blank template to download. RC downloads each logo from its link. Upload again any time to add schools or fix colors; existing links keep working.
+2. **Send the links.** "Download mail-merge file" gives one row per school with the coach's first name, email and personal preview link (`/p/<school>-<code>`), ready for Gmail mail merge, Mailchimp, YAMM or Instantly.
+3. **The coach taps the link** and lands on a page in their school's colors: "Coach Ben, your recruiting staff is ready." They tap **Open my demo** and get their own demo, branded for their school, with fictional players near their campus. No sign-up.
+4. **One tap to go live.** Inside the demo, "Set it up for real" creates the school's real account with the same branding, and the coach sets up their login and staff. The 90-day trial starts with no card.
+5. **See who's interested.** Every school shows its stage: Not opened → Clicked link → Opened demo → Explored demo (5+ pages viewed) → Signed up → Using RC (5+ players on the board). Schools that signed up also show staff, players, plan and last sign-in.
+   - "Clicked link" can be an email virus-scanner, so only "Opened demo" counts as a real try.
+
+Also:
+- **Try RC now, no sign-up** on the sign-in page opens a private generic demo.
+- Try-it demos don't run scheduled jobs, never call paid search or AI, and are deleted after 14 days (`RC_GUEST_DEMO_DAYS`). Their open and view counts are kept.
+- Limits: `RC_GUEST_DEMOS_PER_HOUR` (default 60) and `RC_PREVIEWS_PER_SCHOOL_PER_DAY` (default 25).
+- **Before a mass send:** cold email in the US needs your business mailing address and an unsubscribe line (CAN-SPAM). Send in batches of 30 to 50 a day from a warmed-up domain, not your main one, or schools' spam filters will block you. Use school logos only in each school's own private preview, never in public ads.
+
 ## Subscriptions, free trial & school invites
 
-- **Every school subscribes,** monthly or yearly. Prices live in your Stripe account (`STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`), so changing them needs no code.
-- **90-day free trial, charged automatically.** The head coach adds a card in Stripe Checkout when starting the trial. Nothing is charged until the trial ends, then Stripe charges automatically and renews.
-  - Schools update their card, switch plans or cancel through Stripe's billing page (Billing → "Update card, switch plan or cancel"). RC never sees card numbers.
-  - Promo codes are accepted (for example, a founding-school discount).
-- **Stripe keeps RC in sync** through the webhook at `/api/stripe/webhook`, which reports trial starts, renewals, failed payments and cancellations. Every request is signature-checked, and older events that arrive out of order are ignored.
-- **When a trial or subscription isn't active,** coaches see the Billing page and the rest of the app stays locked. Their data is kept, and background work and AI research pause, so inactive schools cost nothing.
-- **Billing is only enforced once the Stripe keys are set.** Until then everything is open.
-- **School invites** (owner page → "Add a school"):
-  1. Create a branded school (name, team name, campus ZIP, colors, logo).
-  2. Get a one-time invite link (valid 30 days) and email it.
-  3. The head coach creates his own login, lists the staff, and sets the shared staff login (with a separate password).
-  4. Then he starts the free trial.
-- **Owner page** (`/admin`, for emails in `RC_ADMIN_EMAILS`): every school's status (trial, paying, payment issue, ended), staff and players, AI usage and estimated cost, new invite links, complimentary access, "paid by invoice through <date>" for schools paying by invoice or purchase order, and AI checks per month.
-- **AI research is included in every subscription,** up to 200 checks a month during the trial and 400 a month when paid, adjustable per school.
+- **Coaches are never locked out.** The board, players, notes, contact log, search, imports and exports always work, paid or not. A subscription pays for the automatic staff work: AI research, daily saved searches, automatic stat and schedule tracking, and the page finder.
+- **90-day free trial, no card.** It starts the first time anyone at the school signs in. When it ends without a subscription, the automatic updates pause and the board stays free.
+  - Set `RC_TRIAL_REQUIRES_CARD=true` to require a card up front instead.
+  - A school that subscribes mid-trial keeps its remaining free days, then Stripe charges automatically and renews.
+- **Every school subscribes** monthly or yearly. Prices live in your Stripe account (`STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`), so changing them needs no code. Schools update their card, switch plans or cancel through Stripe's billing page, and RC never sees card numbers. Promo codes are accepted.
+- **Stripe keeps RC in sync** through the webhook at `/api/stripe/webhook`. Every request is signature-checked, and older events that arrive out of order are ignored.
+- **Billing is only enforced once the Stripe keys are set.** Until then everything is included.
+- **School invites** (owner page → "Add a school", or "Set it up for real" from a preview): a branded school plus a one-time setup link, valid 30 days. The head coach creates their login, lists the staff and sets the shared staff login.
+- **Owner page** (`/admin`, for emails in `RC_ADMIN_EMAILS`): every school's status, staff and players, AI usage and estimated cost, new invite links, complimentary access, "paid by invoice through <date>", and AI checks per month.
+- **AI research** is included up to 200 checks a month during the trial and 400 a month when paid, adjustable per school. Demos never run AI research, because their players are fictional.
+
+## Snap a roster & download your board
+
+- **Snap a photo** (Import page): take a photo of a printed roster, a showcase program, a lineup card or a handwritten list, up to 6 pages. RC reads it with Claude and copies only what's written; unreadable cells stay blank. Every row goes through the normal import preview before anything is saved. It needs `ANTHROPIC_API_KEY`, costs about a cent or two per photo (shown on the owner page), and doesn't count against a school's AI checks. Limit: `RC_PHOTO_IMPORTS_PER_DAY` (default 40).
+- **Download my board** (My Players): one CSV with every player, status, contact info, sourced numbers, last contact, links and staff notes. It opens in Excel or Google Sheets and is always available. Contact info is left out for players who opted out.
 
 ## AI research agent (keeps every board current)
 

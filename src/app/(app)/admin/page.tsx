@@ -14,7 +14,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
-  const orgs = await ctx.db.all<{ id: string; created_at: string }>("SELECT id, created_at FROM orgs ORDER BY created_at DESC");
+  // Throwaway try-it demos are tracked on the Outreach page, not here.
+  const orgs = await ctx.db.all<{ id: string; created_at: string }>("SELECT id, created_at FROM orgs WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.org_id = orgs.id AND u.email LIKE '%@guest.rc.local') ORDER BY created_at DESC");
   const rows = await Promise.all(orgs.map(async (o) => {
     const org = await getOrg(ctx.db, o.id);
     const n = await ctx.db.get<{ players: number; staff: number; checks: number; cents: number; invited: number }>(
@@ -33,6 +34,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
+      <p className="mb-4"><a href="/admin/outreach" className="inline-flex min-h-10 items-center rounded-[3px] bg-brand-600 px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">Outreach: schools, demo links & who&apos;s interested →</a></p>
       <PageHeader title="RC owner" subtitle={`${rows.length} programs · ${paying} paying · ${trials} in trial · about $${aiDollars.toFixed(2)} AI usage this month (estimate)${billingEnforced() ? "" : " · Stripe not connected yet (everything is open)"}`} />
 
       <Card title="Add a school" className="mb-6">

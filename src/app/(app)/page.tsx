@@ -12,7 +12,7 @@ import { EXAMPLES } from "@/lib/search-examples";
 import { Empty, Flash, timeAgo } from "@/components/ui";
 import { encodeCriteria } from "@/lib/criteria-form";
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string; welcome?: string }> }) {
   const { ctx, user, org } = await requireSession();
   const sp = await searchParams;
   const brief = await buildBrief(ctx.db, ctx.orgId, user.lastBriefAt);
@@ -38,6 +38,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
+      {sp.welcome === "demo" && org.isDemo && (
+        <div className="mb-6 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-5">
+          <p className="eyebrow text-slate-500">Welcome, Coach</p>
+          <h2 className="font-display text-3xl font-extrabold uppercase leading-none">Try these 3 things</h2>
+          <ol className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+            <li><a href="/discover" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">1. Find players</b>Type what you need, like &ldquo;2027 shortstops within 100 miles&rdquo;.</a></li>
+            <li><a href="/following" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">2. Open your board</b>Tap a player to see stats, sources, games, notes and contact log.</a></li>
+            <li><a href="/import" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">3. Bring your list</b>See how your spreadsheet or a photo of your list comes in.</a></li>
+          </ol>
+        </div>
+      )}
 
       {/* Search first: the one thing a coach comes here to do. */}
       <section className="relative overflow-hidden bg-[var(--team-ink)] px-5 pb-8 pt-8 text-white sm:px-10 sm:pb-10 sm:pt-12">

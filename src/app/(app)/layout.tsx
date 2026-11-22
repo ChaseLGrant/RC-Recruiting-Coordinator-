@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { requireSession } from "@/lib/session";
 import { listApprovals } from "@/lib/repo/approvals";
-import { logoutAction, switchStaffAction } from "@/app/actions";
+import { logoutAction, startFromPreviewAction, switchStaffAction } from "@/app/actions";
+import { prospectForDemo, trackDemoView } from "@/lib/outreach/prospects";
 import { BottomTabs, NavLinks } from "@/components/nav";
 import { ROLE_LABEL } from "@/lib/domain/types";
 import { isOwner } from "@/lib/billing/schools";
@@ -14,15 +15,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { ctx, user, org, shared } = await requireSession();
   const pending = (await listApprovals(ctx.db, ctx.orgId, ["pending"])).length;
   const billing = billingState(org);
+  // School previews: count views (so RC knows who explored) and offer the real thing.
+  const prospect = org.isDemo ? await prospectForDemo(ctx.db, org.id) : null;
+  if (prospect) await trackDemoView(ctx.db, org.id);
+  const isGuest = org.isDemo && user.email.endsWith("@guest.rc.local");
   const b = org.settings.branding;
   const team = b.teamName ?? org.name.replace(/\s*\(.*\)\s*$/, "");
-  const initials = user.name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const initials = user.name.replace(/\(.*?\)/g, "").split(/\s+/).map((p) => p.replace(/[^\p{L}]/gu, "")[0] ?? "").join("").slice(0, 2).toUpperCase() || "RC";
   const vars = { "--team-primary": b.primary, "--team-ink": b.ink, "--team-accent": b.accent } as CSSProperties;
   return (
     <div style={vars} className="team-scope min-h-screen pb-20 md:pb-0">
       {org.isDemo && (
         <div className="bg-[var(--team-accent)] px-4 py-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--team-ink)]">
           Demo<span className="hidden sm:inline"> · every player, school and number shown is fictional</span><span className="sm:hidden"> · fictional players</span>
+        </div>
+      )}
+      {(prospect || isGuest) && (
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-[var(--team-primary)] px-4 py-2.5 text-center text-sm text-white">
+          <span><b>Like it?</b> Set RC up for {prospect ? (prospect.teamName ?? prospect.branding.teamName ?? prospect.programName) : "your program"} with your real players. Free for 90 days, no card.</span>
+          {prospect ? (
+            <form action={startFromPreviewAction}><button className="rounded-[3px] bg-white px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--team-ink)] hover:bg-white/90">Set it up for real</button></form>
+          ) : (
+            <form action={logoutAction}><input type="hidden" name="to" value="/signup" /><button className="rounded-[3px] bg-white px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--team-ink)] hover:bg-white/90">Get RC for my program</button></form>
+          )}
         </div>
       )}
       <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary)] bg-[var(--team-ink)] pt-[env(safe-area-inset-top)] text-white">

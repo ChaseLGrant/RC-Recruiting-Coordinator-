@@ -31,6 +31,7 @@ import { createApproval } from "../repo/approvals";
 import { emptyStats, ingestRecords, type IngestStats } from "../ingest";
 import { checkTrackedPages } from "../watch/runner";
 import { orgIsActive } from "../billing/plan";
+import { isThrowawayDemo } from "../outreach/cleanup";
 
 export interface SyncResult {
   sourcesChecked: number;
@@ -264,6 +265,7 @@ export async function runDueMissions(db: Db, trigger: "schedule" | "cron" = "sch
   const results = [];
   for (const m of due) {
     if (!(await orgIsActive(db, m.org_id))) continue; // subscription inactive: paused, data kept
+    if (await isThrowawayDemo(db, m.org_id)) continue; // try-it demos don't run scheduled work
     results.push(await runMission(db, m.org_id, m.id, trigger));
   }
   return results;
