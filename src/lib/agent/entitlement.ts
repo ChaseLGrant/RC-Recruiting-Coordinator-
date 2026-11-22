@@ -1,46 +1,33 @@
-// Who can use AI research. RC is free; AI research is a paid add-on per
-// school. Every school gets a small free trial of manual checks so coaches
-// can see the value. Automatic board-wide research needs the add-on.
+// AI research is included in every subscription, with a monthly check limit
+// (lower during the free trial). It runs only while the school's
+// subscription is active.
 
 import type { Db } from "../db";
 import type { Org } from "../repo";
+import { billingState } from "../billing/plan";
 
-export const TRIAL_CHECKS = () => Math.max(0, Number(process.env.RC_AI_TRIAL_CHECKS ?? 25));
+export const TRIAL_MONTHLY_CHECKS = () => Math.max(0, Number(process.env.RC_AI_TRIAL_MONTHLY ?? 200));
 
 export interface AiAccess {
-  /** May run a check right now (manual). */
   canRun: boolean;
-  /** Automatic scheduled research for the whole board. */
   automatic: boolean;
-  mode: "addon" | "trial" | "none";
   usedThisMonth: number;
   monthlyLimit: number;
-  trialUsed: number;
-  trialTotal: number;
   message: string;
 }
 
 export async function aiAccess(db: Db, org: Org): Promise<AiAccess> {
+  const billing = billingState(org);
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
-  const counted = "status NOT IN ('error', 'not_configured')"; // failed runs don't count against a school
-  const month = await db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM agent_runs WHERE org_id = ? AND ran_at >= ? AND ${counted}`, [org.id, monthStart.toISOString()]);
-  const ever = await db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM agent_runs WHERE org_id = ? AND ${counted}`, [org.id]);
-  const usedThisMonth = Number(month?.n ?? 0);
-  const trialUsed = Number(ever?.n ?? 0);
-  const trialTotal = TRIAL_CHECKS();
-  const p = org.settings.plan;
-  if (p.aiResearch) {
-    const left = p.aiMonthlyLimit - usedThisMonth;
-    return {
-      canRun: left > 0, automatic: left > 0, mode: "addon", usedThisMonth, monthlyLimit: p.aiMonthlyLimit, trialUsed, trialTotal,
-      message: left > 0 ? `AI research add-on active · ${usedThisMonth} of ${p.aiMonthlyLimit} checks used this month` : `Monthly AI research limit reached (${p.aiMonthlyLimit}). It resets on the 1st.`,
-    };
-  }
-  const trialLeft = Math.max(0, trialTotal - trialUsed);
+  const row = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM agent_runs WHERE org_id = ? AND ran_at >= ? AND status NOT IN ('error', 'not_configured', 'not_included')", [org.id, monthStart.toISOString()]);
+  const usedThisMonth = Number(row?.n ?? 0);
+  if (!billing.active) return { canRun: false, automatic: false, usedThisMonth, monthlyLimit: 0, message: "AI research is part of your RC subscription. Subscribe to turn it back on." };
+  const monthlyLimit = billing.trialing ? Math.min(TRIAL_MONTHLY_CHECKS(), org.settings.plan.aiMonthlyLimit) : org.settings.plan.aiMonthlyLimit;
+  const left = monthlyLimit - usedThisMonth;
   return {
-    canRun: trialLeft > 0, automatic: false, mode: trialLeft > 0 ? "trial" : "none", usedThisMonth, monthlyLimit: 0, trialUsed, trialTotal,
-    message: trialLeft > 0 ? `Free trial: ${trialLeft} of ${trialTotal} AI checks left` : `You've used all ${trialTotal} free AI checks. Add AI research to keep your board updated automatically.`,
+    canRun: left > 0, automatic: left > 0, usedThisMonth, monthlyLimit,
+    message: left > 0 ? `${usedThisMonth} of ${monthlyLimit} AI checks used this month${billing.trialing ? " (free trial)" : ""}` : `This month's ${monthlyLimit} AI checks are used up. They reset on the 1st.`,
   };
 }

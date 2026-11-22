@@ -30,6 +30,7 @@ import {
 import { createApproval } from "../repo/approvals";
 import { emptyStats, ingestRecords, type IngestStats } from "../ingest";
 import { checkTrackedPages } from "../watch/runner";
+import { orgIsActive } from "../billing/plan";
 
 export interface SyncResult {
   sourcesChecked: number;
@@ -261,7 +262,10 @@ async function executeMission(db: Db, orgId: string, mission: Mission, runId: st
 export async function runDueMissions(db: Db, trigger: "schedule" | "cron" = "schedule") {
   const due = await db.all<{ id: string; org_id: string }>("SELECT id, org_id FROM missions WHERE active = 1 AND next_run_at IS NOT NULL AND next_run_at <= ? ORDER BY next_run_at LIMIT 25", [nowIso()]);
   const results = [];
-  for (const m of due) results.push(await runMission(db, m.org_id, m.id, trigger));
+  for (const m of due) {
+    if (!(await orgIsActive(db, m.org_id))) continue; // subscription inactive: paused, data kept
+    results.push(await runMission(db, m.org_id, m.id, trigger));
+  }
   return results;
 }
 

@@ -10,7 +10,7 @@ import { getAgentClient } from "@/lib/agent/crm-agent";
 import { aiAccess } from "@/lib/agent/entitlement";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { requestAiAddonAction, updateAgentSettingsAction, setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { updateAgentSettingsAction, setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -113,10 +113,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <p className="mb-3 text-sm text-slate-600">Keeps every player on your board current. On a schedule, RC&apos;s agent searches the public web for each player and proposes updates: new stats, commitments, school or team changes, upcoming games, film, socials and news. Each update comes with the page it came from and a quote. RC double-checks that every source was a real search result and leaves out health, grades and family information. Nothing changes until a coach approves it.</p>
         {agentReady ? (
           <>
-            <div className="mb-3 flex flex-wrap items-center gap-3 border-l-4 border-[var(--team-primary)] bg-slate-50 p-3 text-sm">
-              <span><b>{access.mode === "addon" ? "AI research add-on" : "Free plan"}</b> · {access.message}</span>
-              {access.mode !== "addon" && (org.settings.plan.requestedAt ? <Badge>Requested {timeAgo(org.settings.plan.requestedAt)}</Badge> : <form action={requestAiAddonAction}><input type="hidden" name="returnTo" value="/settings#agent" /><Button className="text-xs">Request AI research</Button></form>)}
-            </div>
+            <p className="mb-3 border-l-4 border-[var(--team-primary)] bg-slate-50 p-3 text-sm">Included in your RC subscription · {access.message}</p>
             <p className="mb-3 text-sm"><Badge tone="green">Connected</Badge> <span className="ml-1">Last 30 days: <b>{agentUsage?.runs ?? 0}</b> players researched, about <b>${((agentUsage?.cents ?? 0) / 100).toFixed(2)}</b> in AI usage (estimate based on list prices).</span></p>
             <form action={updateAgentSettingsAction} className="flex flex-wrap items-end gap-4 text-sm">
               <label className="flex items-center gap-2"><input type="checkbox" name="enabled" value="1" defaultChecked={org.settings.agent.enabled} /> Keep my board up to date</label>

@@ -408,6 +408,15 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 
 CREATE INDEX IF NOT EXISTS idx_agent_runs ON agent_runs(org_id, athlete_id, ran_at);
 
+CREATE TABLE IF NOT EXISTS invites (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL REFERENCES orgs(id),
+    created_by TEXT,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL
+  );
+
 CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
@@ -445,4 +454,5 @@ ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE link_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE athlete_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

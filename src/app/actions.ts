@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
@@ -729,31 +729,122 @@ export async function updateAgentSettingsAction(fd: FormData) {
   redirect(withFlash("/settings#agent", "AI research settings saved."));
 }
 
-// ---------- paid add-on: requests (schools) and switching it on (RC owners) ----------
+// ---------- billing ----------
 
-export async function requestAiAddonAction(fd: FormData) {
-  const { ctx, org, user } = await requireSession();
-  await updateOrgSettings({ ...ctx, role: "system" }, { plan: { ...org.settings.plan, requestedAt: new Date().toISOString() } });
-  await audit(ctx, "request_ai_addon", "org", ctx.orgId, { by: user.name });
-  revalidatePath("/", "layout");
-  redirect(withFlash(str(fd, "returnTo") || "/settings#agent", "Request sent. The RC team will reach out to set up AI research for your program."));
+async function baseUrl() {
+  if (process.env.RC_PUBLIC_URL) return process.env.RC_PUBLIC_URL.replace(/\/$/, "");
+  const h = await headers();
+  return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }
 
-function isOwner(email: string) {
-  return (process.env.RC_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());
+export async function startCheckoutAction(fd: FormData) {
+  const { ctx, org, user } = await requireSession({ allowInactive: true });
+  authorize(ctx, "manage_settings");
+  const { getStripe, createCheckoutUrl } = await import("@/lib/billing/stripe");
+  const stripe = getStripe();
+  if (!stripe) redirect("/billing?error=" + encodeURIComponent("Billing isn't set up yet."));
+  let url: string;
+  try {
+    url = await createCheckoutUrl(stripe, org, { interval: str(fd, "interval") === "year" ? "year" : "month", email: user.email, baseUrl: await baseUrl() });
+    await audit(ctx, "billing_checkout_started", "org", ctx.orgId, { interval: str(fd, "interval") });
+  } catch (e) {
+    redirect("/billing?error=" + encodeURIComponent(e instanceof Error ? e.message : "Couldn't open checkout"));
+  }
+  redirect(url);
 }
 
-export async function adminSetAddonAction(fd: FormData) {
-  const { user, ctx } = await requireSession();
-  if (!isOwner(user.email)) redirect("/");
+export async function billingPortalAction() {
+  const { ctx, org } = await requireSession({ allowInactive: true });
+  authorize(ctx, "manage_settings");
+  const { getStripe, createPortalUrl } = await import("@/lib/billing/stripe");
+  const stripe = getStripe();
+  if (!stripe) redirect("/billing?error=" + encodeURIComponent("Billing isn't set up yet."));
+  let url: string;
+  try {
+    url = await createPortalUrl(stripe, org, await baseUrl());
+  } catch (e) {
+    redirect("/billing?error=" + encodeURIComponent(e instanceof Error ? e.message : "Couldn't open billing"));
+  }
+  redirect(url);
+}
+
+
+
+// ---------- school invites (head coach) & owner tools ----------
+
+export async function acceptInviteAction(fd: FormData) {
+  const token = str(fd, "token");
+  const db = await getDb();
+  const staff = str(fd, "staff").split(/\n+/).map((l) => l.trim()).filter(Boolean).map((l) => {
+    const [name, ...title] = l.split(/\s*[,–—-]\s*/);
+    return { name: name.trim(), title: title.join(" ").trim() || null, role: "assistant_coach" as Role };
+  });
+  let userId: string;
+  try {
+    const { acceptInvite } = await import("@/lib/billing/schools");
+    ({ userId } = await acceptInvite(db, token, {
+      name: str(fd, "name"), title: str(fd, "title") || null, email: str(fd, "email"), password: str(fd, "password"),
+      staffLoginEmail: str(fd, "staffEmail") || null, staffLoginPassword: str(fd, "staffPassword") || null, staff,
+    }));
+  } catch (e) {
+    redirect(`/join/${encodeURIComponent(token)}?error=` + encodeURIComponent(e instanceof Error ? e.message : "Couldn't set up your account"));
+  }
+  await startSession(userId);
+  redirect("/billing");
+}
+
+async function requireOwner() {
+  const s = await requireSession({ allowInactive: true });
+  const { isOwner } = await import("@/lib/billing/schools");
+  if (!isOwner(s.user.email)) redirect("/");
+  return s;
+}
+
+export async function adminCreateSchoolAction(fd: FormData) {
+  const { ctx } = await requireOwner();
+  const { createSchool, createInvite } = await import("@/lib/billing/schools");
+  let link: string;
+  try {
+    let logoDataUrl: string | null = null;
+    const file = fd.get("logo");
+    if (file instanceof File && file.size > 0) {
+      if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(file.type) || file.size > 500_000) throw new Error("Logo must be a PNG, JPG, WebP or SVG under 500 KB.");
+      logoDataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+    }
+    const orgId = await createSchool(ctx.db, {
+      programName: str(fd, "programName"), teamName: str(fd, "teamName") || null, campusZip: str(fd, "campusZip"),
+      branding: { primary: str(fd, "primary"), ink: str(fd, "ink"), accent: str(fd, "accent"), logoDataUrl },
+    });
+    const token = await createInvite(ctx.db, orgId, ctx.userId);
+    link = `${await baseUrl()}/join/${token}`;
+  } catch (e) {
+    redirect(withFlash("/admin", e instanceof Error ? e.message : "Couldn't create the school", "err"));
+  }
+  revalidatePath("/admin");
+  redirect(withFlash("/admin", `School created. Email this one-time link to the head coach (it works once, for 30 days): ${link}`));
+}
+
+export async function adminNewInviteAction(fd: FormData) {
+  const { ctx } = await requireOwner();
+  const { createInvite } = await import("@/lib/billing/schools");
+  const token = await createInvite(ctx.db, str(fd, "orgId"), ctx.userId);
+  redirect(withFlash("/admin", `New invite link (works once, for 30 days): ${await baseUrl()}/join/${token}`));
+}
+
+export async function adminBillingAction(fd: FormData) {
+  const { ctx } = await requireOwner();
   const orgId = str(fd, "orgId");
   const { getOrg } = await import("@/lib/repo");
   const target = await getOrg(ctx.db, orgId);
-  const on = str(fd, "on") === "1";
-  const limit = Number(str(fd, "limit")) || target.settings.plan.aiMonthlyLimit;
-  await updateOrgSettings({ db: ctx.db, orgId, userId: ctx.userId, role: "system" }, {
-    plan: { ...target.settings.plan, aiResearch: on, aiMonthlyLimit: limit, enabledAt: on ? (target.settings.plan.enabledAt ?? new Date().toISOString()) : null },
-  });
+  const paidThrough = str(fd, "paidThrough");
+  const plan = {
+    ...target.settings.plan,
+    comp: Boolean(str(fd, "comp")),
+    paidThrough: paidThrough ? new Date(paidThrough + "T23:59:59Z").toISOString() : null,
+    aiMonthlyLimit: Math.max(0, Number(str(fd, "aiMonthlyLimit")) || target.settings.plan.aiMonthlyLimit),
+  };
+  await updateOrgSettings({ db: ctx.db, orgId, userId: ctx.userId, role: "system" }, { plan });
+  await audit({ ...ctx, orgId }, "owner_billing_update", "org", orgId, { comp: plan.comp, paidThrough: plan.paidThrough, aiMonthlyLimit: plan.aiMonthlyLimit });
   revalidatePath("/admin");
-  redirect(withFlash("/admin", `${target.name}: AI research ${on ? `on (${limit} checks/month)` : "off"}.`));
+  redirect(withFlash("/admin", `${target.name} updated.`));
 }

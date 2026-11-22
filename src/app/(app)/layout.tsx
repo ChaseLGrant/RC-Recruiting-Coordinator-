@@ -5,12 +5,15 @@ import { listApprovals } from "@/lib/repo/approvals";
 import { logoutAction, switchStaffAction } from "@/app/actions";
 import { BottomTabs, NavLinks } from "@/components/nav";
 import { ROLE_LABEL } from "@/lib/domain/types";
+import { isOwner } from "@/lib/billing/schools";
+import { billingState } from "@/lib/billing/plan";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { ctx, user, org, shared } = await requireSession();
   const pending = (await listApprovals(ctx.db, ctx.orgId, ["pending"])).length;
+  const billing = billingState(org);
   const b = org.settings.branding;
   const team = b.teamName ?? org.name.replace(/\s*\(.*\)\s*$/, "");
   const initials = user.name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
@@ -51,13 +54,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link href="/approvals" className="block px-4 py-2.5 hover:bg-slate-50">Everything waiting on me</Link>
               <Link href="/impact" className="block px-4 py-2.5 hover:bg-slate-50">Time RC saved you</Link>
               <Link href="/settings" className="block px-4 py-2.5 hover:bg-slate-50">Settings, staff & branding</Link>
-              {(process.env.RC_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).includes(user.email.toLowerCase()) && <Link href="/admin" className="block px-4 py-2.5 font-semibold text-[var(--team-primary)] hover:bg-slate-50">RC owner page</Link>}
+              <Link href="/billing" className="block px-4 py-2.5 hover:bg-slate-50">Billing</Link>
+              {isOwner(user.email) && <Link href="/admin" className="block px-4 py-2.5 font-semibold text-[var(--team-primary)] hover:bg-slate-50">RC owner page</Link>}
               {shared && <form action={switchStaffAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left hover:bg-slate-50">Switch coach</button></form>}
               <form action={logoutAction} className="border-t border-slate-100"><button className="w-full px-4 py-2.5 text-left text-slate-500 hover:bg-slate-50">Sign out</button></form>
             </div>
           </details>
         </div>
       </header>
+      {billing.warning && <div className="bg-amber-50 px-4 py-2 text-center text-sm text-amber-950">{billing.warning} <Link href="/billing" className="font-semibold underline">Billing</Link></div>}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
       <footer className="mx-auto hidden max-w-6xl px-6 pb-10 text-[11px] uppercase tracking-[0.14em] text-slate-400 md:block">RC · Recruiting Coordinator · powered by The Athlete Market</footer>
       <BottomTabs pending={pending} />

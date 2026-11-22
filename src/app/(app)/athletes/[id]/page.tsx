@@ -14,7 +14,7 @@ import { ApprovalCard } from "@/components/approval-card";
 import { identityConfidenceLabel } from "@/lib/domain/identity";
 import { getEmailProvider } from "@/lib/providers/email";
 import { can } from "@/lib/domain/permissions";
-import { requestAiAddonAction, researchNowAction, findPagesAction, decideLinksAction, deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
+import { researchNowAction, findPagesAction, decideLinksAction, deleteContactAction, trackPageAction, untrackPageAction, checkPagesNowAction, deleteAthleteAction, addNoteAction, draftOutreachAction, sendMessageAction, toggleFollowAction, updateContactAction } from "@/app/actions";
 import { Avatar, Badge, Button, Card, Flash, Input, Label, Select, fmtDate, timeAgo } from "@/components/ui";
 import { LogContactForm } from "@/components/contact-log";
 import { CONTACT_KINDS, contactCounts, listContacts, type ContactKind } from "@/lib/repo/contacts";
@@ -178,7 +178,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
-          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{!agentReady ? "AI not connected" : access.canRun ? "Update with AI now" : "Add AI research"}</button></form>}>
+          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{!agentReady ? "AI not connected" : access.canRun ? "Update with AI now" : "AI paused"}</button></form>}>
             {pendingUpdates.length > 0 ? (
               <div className="space-y-3">{pendingUpdates.map((ap) => <ApprovalCard key={ap.id} a={ap} returnTo={`${here}#research`} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} />)}</div>
             ) : (
@@ -187,14 +187,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                 {lastResearch && access.automatic && ` RC checks again every ${org.settings.agent.everyDays} days.`}
               </p>
             )}
-            {agentReady && access.mode !== "addon" && (
-              <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
-                <span>{access.message}</span>
-                {org.settings.plan.requestedAt ? <Badge>Requested {timeAgo(org.settings.plan.requestedAt)}</Badge> : (
-                  <form action={requestAiAddonAction}><input type="hidden" name="returnTo" value={`${here}#research`} /><button className="font-bold uppercase tracking-wider text-brand-700 hover:underline">Add automatic AI research</button></form>
-                )}
-              </div>
-            )}
+            {agentReady && !access.canRun && <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">{access.message} <a href="/billing" className="font-semibold text-brand-700 underline">Billing</a></p>}
           </Card>
 
           <Card title="Pages & social" id="pages" action={<form action={findPagesAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{searchReady ? "Find his pages" : "Search not connected"}</button></form>}>

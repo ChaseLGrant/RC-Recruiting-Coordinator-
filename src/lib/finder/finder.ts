@@ -12,6 +12,7 @@ import { addTrackedPage } from "../watch/runner";
 import { audit, authorize, getAthlete, logEvent, normalizeXHandle, updateAthleteContact, type AthleteRecord, type Ctx } from "../repo";
 import { createApproval } from "../repo/approvals";
 import { getSearchProvider, type SearchProvider, type SearchResult } from "./search";
+import { orgIsActive } from "../billing/plan";
 
 export type LinkKind = "stats" | "social" | "film";
 
@@ -225,6 +226,7 @@ export async function runFinderBatch(db: Db, perOrg = Number(process.env.RC_FIND
   const out = [];
   for (const { org_id } of orgs) {
     if (Date.now() > deadline) break;
+    if (!(await orgIsActive(db, org_id))) continue;
     const ids = (await db.all<{ athlete_id: string }>(
       "SELECT athlete_id FROM follows WHERE org_id = ? UNION SELECT athlete_id FROM mission_matches WHERE org_id = ? AND eligible = 1",
       [org_id, org_id],

@@ -34,8 +34,8 @@ export interface OrgSettings {
   timezone: string;
   /** AI research agent that keeps the board current. */
   agent: { enabled: boolean; everyDays: number; maxPerDay: number; boardRequestedAt: string | null };
-  /** Paid add-ons. Only RC's owners change this (from /admin), never a school's own settings. */
-  plan: { aiResearch: boolean; aiMonthlyLimit: number; requestedAt: string | null; enabledAt: string | null };
+  /** Subscription. Set by Stripe webhooks and RC owners (/admin) only, never from a school's settings. */
+  plan: Plan;
 }
 
 export interface Branding {
@@ -46,6 +46,25 @@ export interface Branding {
   accent: string; // secondary team color
   /** Logo as a data: URL (PNG, JPEG, WebP or SVG shown via <img>, so scripts never run). */
   logoDataUrl: string | null;
+}
+
+export interface Plan {
+  /** Stripe subscription status, or "none" before the school starts its trial. */
+  status: "none" | "trialing" | "active" | "past_due" | "unpaid" | "canceled" | "incomplete" | "incomplete_expired" | "paused";
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  /** Schools paying by invoice / purchase order: RC owner sets the date they're paid through. */
+  paidThrough: string | null;
+  interval: "month" | "year" | null;
+  cancelAtPeriodEnd: boolean;
+  trialUsed: boolean;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  /** Unix seconds of the last Stripe event applied (ignore older, out-of-order events). */
+  stripeUpdatedAt: number;
+  /** Complimentary access granted by an RC owner. */
+  comp: boolean;
+  aiMonthlyLimit: number;
 }
 
 export const DEFAULT_BRANDING: Branding = { teamName: null, primary: "#1f3a68", ink: "#0f1722", accent: "#b8925a", logoDataUrl: null };
@@ -96,10 +115,18 @@ export function orgFromRow(r: Row): Org {
         boardRequestedAt: s.agent?.boardRequestedAt ?? null,
       },
       plan: {
-        aiResearch: Boolean(s.plan?.aiResearch),
+        status: (s.plan?.status as Plan["status"]) ?? "none",
+        trialEndsAt: s.plan?.trialEndsAt ?? null,
+        currentPeriodEnd: s.plan?.currentPeriodEnd ?? null,
+        paidThrough: s.plan?.paidThrough ?? null,
+        interval: s.plan?.interval ?? null,
+        cancelAtPeriodEnd: Boolean(s.plan?.cancelAtPeriodEnd),
+        trialUsed: Boolean(s.plan?.trialUsed),
+        stripeCustomerId: s.plan?.stripeCustomerId ?? null,
+        stripeSubscriptionId: s.plan?.stripeSubscriptionId ?? null,
+        stripeUpdatedAt: Number(s.plan?.stripeUpdatedAt ?? 0),
+        comp: Boolean(s.plan?.comp),
         aiMonthlyLimit: Math.max(0, Number(s.plan?.aiMonthlyLimit ?? 400)),
-        requestedAt: s.plan?.requestedAt ?? null,
-        enabledAt: s.plan?.enabledAt ?? null,
       },
       pageWatch: { enabled: s.pageWatch?.enabled ?? true, everyHours: Math.min(168, Math.max(6, Number(s.pageWatch?.everyHours ?? 12))) },
     },
