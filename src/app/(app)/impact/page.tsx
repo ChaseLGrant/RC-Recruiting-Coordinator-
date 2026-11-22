@@ -37,7 +37,7 @@ export default async function ImpactPage({ searchParams }: { searchParams: Promi
       </div>
       <Card title="How the estimate is calculated (edit the assumptions)">
         <form action={updateAssumptionsAction}>
-          <table className="min-w-full text-sm">
+          <div className="-mx-1 overflow-x-auto px-1"><table className="min-w-full text-sm">
             <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Task RC performed</th><th>Measured count</th><th>Minutes a staffer would spend each (assumption)</th><th>Estimated minutes</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {est.lines.map((l) => (
@@ -49,7 +49,7 @@ export default async function ImpactPage({ searchParams }: { searchParams: Promi
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           <Button className="mt-3">Save assumptions</Button>
         </form>
       </Card>

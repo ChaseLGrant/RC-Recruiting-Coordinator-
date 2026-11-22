@@ -81,7 +81,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
           {results.rows.length === 0 ? (
             <div className="mt-5"><Empty>No one fits every must-have yet. Try &ldquo;Include close calls&rdquo;, loosen a standard, or save the search and RC will keep looking every day.</Empty></div>
           ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               {results.rows.map((r) => (
                 <PlayerCard key={r.athlete.id} athlete={r.athlete} match={r.match} metrics={r.metrics} statKeys={statKeys} following={r.following} nextGame={r.nextGame} filmCount={r.filmCount} returnTo={here} compareForm="compare-form" />
               ))}

@@ -70,7 +70,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card title="Data sources" id="sources" action={<form action={syncSourcesAction}><Button variant="secondary" className="text-xs">Check connected sources now</Button></form>}>
         <p className="mb-3 text-sm text-slate-600"><b>Have a recruiting spreadsheet?</b> Use <a href="/import" className="font-semibold text-brand-700 underline">Import your list</a>. It reads any column names, Excel files and Google Sheets. The form below is for files already in RC&apos;s template format.</p>
         <p className="mb-3 text-sm text-slate-600">RC works from three kinds of data: lists and files your staff bring in, public stats pages your staff link to players (kept updated automatically; see Season stat tracking), and licensed data feeds once connected. It never logs in to other sites or gets around a paywall.</p>
-        <table className="mb-5 min-w-full text-sm">
+        <div className="-mx-1 overflow-x-auto px-1"><table className="mb-5 min-w-full text-sm">
           <thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Source</th><th>Type</th><th>Status</th><th>Details</th><th>Last checked</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {sources.map((s) => (
@@ -83,8 +83,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </tr>
             ))}
           </tbody>
-        </table>
-        <div className="grid gap-4 md:grid-cols-2">
+        </table></div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <form action={importCsvAction} className="space-y-2 rounded-[4px] border border-slate-200 p-3">
             <div className="text-sm font-semibold">Import a CSV</div>
             <div className="flex gap-3 text-sm">

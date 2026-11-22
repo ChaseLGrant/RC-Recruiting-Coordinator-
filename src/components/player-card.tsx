@@ -40,7 +40,7 @@ export function PlayerCard({
 }) {
   const gaps = match ? gapText(match) : null;
   return (
-    <article className="group relative flex flex-col rounded-[4px] border border-slate-900/10 border-t-[3px] border-t-[var(--team-primary)] bg-white p-4 shadow-[var(--shadow-soft)] transition hover:border-slate-900/25 hover:border-t-[var(--team-primary)] sm:p-5">
+    <article className="group relative flex min-w-0 flex-col rounded-[4px] border border-slate-900/10 border-t-[3px] border-t-[var(--team-primary)] bg-white p-4 shadow-[var(--shadow-soft)] transition hover:border-slate-900/25 hover:border-t-[var(--team-primary)] sm:p-5">
       <div className="flex items-start gap-3">
         <Avatar first={a.firstName} last={a.lastName} />
         <div className="min-w-0 flex-1">

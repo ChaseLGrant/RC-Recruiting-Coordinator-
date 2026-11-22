@@ -68,13 +68,13 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
       {rows.length === 0 ? (
         <Empty>No players here yet. <Link href="/import" className="font-medium text-brand-700 underline">Import the list you already have</Link>, or <Link href="/" className="font-medium text-brand-700 underline">search for players</Link> and tap &ldquo;Add to My Players&rdquo;.</Empty>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {rows.map((f) => {
             const a = athletes.get(f.athlete_id);
             if (!a) return null;
             const recent = changes.filter((c) => c.athlete_id === a.id)[0];
             return (
-              <div key={a.id} className="flex flex-col gap-2">
+              <div key={a.id} className="flex min-w-0 flex-col gap-2">
                 <PlayerCard athlete={a} metrics={resolveAll(obs.filter((o) => o.athleteId === a.id))} statKeys={["height_in", "weight_lb", "exit_velo_mph", "sixty_yd_sec"]} following nextGame={games.get(a.id)} filmCount={filmBy.get(a.id)} returnTo={here} boardStatus={f.board_status} lastContact={last.get(a.id) ? { label: CONTACT_KINDS[last.get(a.id)!.kind]?.label ?? "Contact", who: last.get(a.id)!.user_name, when: last.get(a.id)!.occurred_at } : null} />
                 <div className="flex flex-wrap items-center gap-2 px-1 text-xs text-slate-500">
                   {recent && <span className="rounded-[3px] bg-sky-50 px-2.5 py-1 text-sky-800">New: {recent.message.replace(`${a.firstName} ${a.lastName}: `, "")} · {timeAgo(recent.created_at)}</span>}
