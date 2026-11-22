@@ -90,6 +90,19 @@ The demo is built from the program's campus, colors and staff, with fictional pl
   - RC then searches for his pages to approve.
 - **Not tested against the live search services or real MaxPreps/Perfect Game pages yet** (the development environment can't reach them). The request formats are covered by tests with simulated responses. Watch the first real searches.
 
+## AI research agent (keeps every board current)
+
+On a schedule (every 7 days per player by default, up to 25 players a day per program), RC's agent researches each player on a coach's board using Claude (`claude-opus-5-5`) with web search. It looks for new stats, commitments, school or team changes, upcoming games, film, socials and news, and proposes each one as an update with the page it came from and a quote.
+
+- **RC double-checks every proposal in code.** The cited page must be one the search actually returned. Stats must be plausible and actually new. Health, injury, grades and family information are dropped. If the agent can't confirm it found the right player, it proposes nothing.
+- **Coaches approve or skip each update.** Approved stats keep their source link. Commitments and news become staff notes with the link. Nothing is marked "verified".
+- **Where to use it:** "Update with AI now" on a player's page, "Update my board with AI" on My Players, and Settings → AI research agent (on/off, how often, daily cap, real usage and estimated cost).
+- **Setup:** add `ANTHROPIC_API_KEY`. Research runs in the hourly GitHub job, which needs the `DATABASE_URL` secret because research can take longer than a web request allows.
+  - The model can be changed with `RC_AGENT_MODEL`.
+  - The request also uses server-side fallbacks (`fallbacks: "default"`), so a request one model declines can be retried on another.
+- **Cost:** roughly 10–30 cents per player check at list prices, shown in Settings. The daily cap limits spending.
+- **Status:** tested with a simulated Claude response, not yet against the live API (no key in the development environment).
+
 ## Trust & safety guarantees (each one is enforced by a test in `tests/trust.test.ts` or `tests/workflow.test.ts`)
 
 - **No fabricated data.** Real programs start empty. Fictional demo data can't be loaded into a real program.

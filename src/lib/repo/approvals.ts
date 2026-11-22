@@ -18,7 +18,8 @@ export type ApprovalKind =
   | "data_conflict" // conflicting athlete data / possible duplicate
   | "compliance" // compliance warning needing review
   | "contact_found" // contact details found on a page the staff linked
-  | "links_found"; // possible stat/social/film pages found for a player
+  | "links_found" // possible stat/social/film pages found for a player
+  | "crm_update"; // research agent's proposed updates for a player on the board
 
 export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   prospect: "New prospect",
@@ -30,6 +31,7 @@ export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   compliance: "Compliance review",
   contact_found: "Contact info found",
   links_found: "Player pages found",
+  crm_update: "Player updates",
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "saved";
@@ -87,7 +89,7 @@ export async function createApproval(
 export async function listApprovals(db: Db, orgId: string, statuses: ApprovalStatus[] = ["pending"], limit = 200): Promise<Approval[]> {
   return (
     await db.all(
-      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, CASE kind WHEN 'compliance' THEN 0 WHEN 'prospect' THEN 1 WHEN 'links_found' THEN 2 WHEN 'contact_found' THEN 2 WHEN 'camp_list' THEN 3 WHEN 'outreach' THEN 3 WHEN 'board_change' THEN 4 WHEN 'itinerary' THEN 5 ELSE 6 END, created_at DESC LIMIT ?`,
+      `SELECT * FROM approvals WHERE org_id = ? AND status IN (${statuses.map(() => "?").join(",")}) ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, CASE kind WHEN 'compliance' THEN 0 WHEN 'prospect' THEN 1 WHEN 'crm_update' THEN 2 WHEN 'links_found' THEN 2 WHEN 'contact_found' THEN 2 WHEN 'camp_list' THEN 3 WHEN 'outreach' THEN 3 WHEN 'board_change' THEN 4 WHEN 'itinerary' THEN 5 ELSE 6 END, created_at DESC LIMIT ?`,
       [orgId, ...statuses, limit],
     )
   ).map(approvalFromRow);
@@ -192,6 +194,14 @@ async function applyApproval(ctx: Ctx, a: Approval, input: DecisionInput): Promi
     }
     case "itinerary":
       return "Itinerary saved";
+    case "crm_update": {
+      if (!a.athleteId) return "Approved";
+      const all = (a.payload.updates as Array<{ id: string }>) ?? [];
+      const keep = input.acceptIds ? all.filter((x) => input.acceptIds!.includes(x.id)) : all;
+      const { applyCrmUpdates } = await import("../agent/apply");
+      const n = await applyCrmUpdates(ctx, a.athleteId, keep as never);
+      return `Applied ${n} update${n === 1 ? "" : "s"}${all.length - n ? `, skipped ${all.length - n}` : ""}.`;
+    }
     case "links_found": {
       const all = (a.payload.candidateIds as string[]) ?? [];
       const keep = input.acceptIds ? all.filter((id) => input.acceptIds!.includes(id)) : all;

@@ -6,9 +6,10 @@ import { getEmailProvider } from "@/lib/providers/email";
 import { getAiProvider } from "@/lib/ai/provider";
 import { listTrackedPages } from "@/lib/watch/runner";
 import { getSearchProvider } from "@/lib/finder/search";
+import { getAgentClient } from "@/lib/agent/crm-agent";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { updateAgentSettingsAction, setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -17,6 +18,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const sources = await listSources(ctx.db, ctx.orgId);
   const tracked = await listTrackedPages(ctx.db, ctx.orgId);
   const finder = getSearchProvider();
+  const agentReady = Boolean(getAgentClient());
+  const agentUsage = await ctx.db.get<{ runs: number; cents: number }>("SELECT COUNT(*) AS runs, COALESCE(SUM(cost_cents), 0) AS cents FROM agent_runs WHERE org_id = ? AND ran_at > ?", [ctx.orgId, new Date(Date.now() - 30 * 86_400_000).toISOString()]);
   const users = await listUsers(ctx.db, ctx.orgId);
   const sharedLogin = await ctx.db.get<{ email: string }>("SELECT email FROM users WHERE org_id = ? AND is_shared = 1", [ctx.orgId]);
   const audit = can(user.role, "view_audit") ? await listAudit(ctx, 60) : [];
@@ -102,6 +105,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           Available providers: {PROVIDERS.map((p) => `${p.name} (${p.status(process.env, org).status.replace("_", " ")})`).join(" · ")}.{" "}
           AI search assist: {ai ? `${ai.name} connected (used only to read your search request)` : "not configured — RC uses its built-in rule-based parser"}.
         </div>
+      </Card>
+
+      <Card title="AI research agent" id="agent">
+        <p className="mb-3 text-sm text-slate-600">Keeps every player on your board current. On a schedule, RC&apos;s agent searches the public web for each player and proposes updates: new stats, commitments, school or team changes, upcoming games, film, socials and news. Each update comes with the page it came from and a quote. RC double-checks that every source was a real search result and leaves out health, grades and family information. Nothing changes until a coach approves it.</p>
+        {agentReady ? (
+          <>
+            <p className="mb-3 text-sm"><Badge tone="green">Connected</Badge> <span className="ml-1">Last 30 days: <b>{agentUsage?.runs ?? 0}</b> players researched, about <b>${((agentUsage?.cents ?? 0) / 100).toFixed(2)}</b> in AI usage (estimate based on list prices).</span></p>
+            <form action={updateAgentSettingsAction} className="flex flex-wrap items-end gap-4 text-sm">
+              <label className="flex items-center gap-2"><input type="checkbox" name="enabled" value="1" defaultChecked={org.settings.agent.enabled} /> Keep my board up to date</label>
+              <label className="flex items-center gap-2">Check each player every <Select name="everyDays" defaultValue={String(org.settings.agent.everyDays)}>{[3, 7, 14, 30].map((d) => <option key={d} value={d}>{d} days</option>)}</Select></label>
+              <label className="flex items-center gap-2">Up to <Input name="maxPerDay" type="number" min={1} max={500} defaultValue={org.settings.agent.maxPerDay} className="w-20" /> players a day</label>
+              <Button disabled={!canSettings}>Save</Button>
+            </form>
+            <p className="mt-2 text-xs text-slate-500">Typical cost is roughly 10–30 cents per player check, depending on how much RC finds. The daily limit caps spending.</p>
+          </>
+        ) : (
+          <div className="border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-950"><b>Not connected yet.</b> Add an Anthropic API key as <code>ANTHROPIC_API_KEY</code> in your hosting settings (and in GitHub Actions secrets for the hourly job), then redeploy.</div>
+        )}
       </Card>
 
       <Card title="Player page finder" id="finder">

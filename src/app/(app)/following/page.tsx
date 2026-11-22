@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { listAthletes, listFollows, listObservations } from "@/lib/repo";
 import { resolveAll } from "@/lib/domain/provenance";
 import { nextGames } from "@/lib/services";
-import { toggleFollowAction } from "@/app/actions";
+import { toggleFollowAction, updateBoardAction } from "@/app/actions";
 import { Empty, Flash, LinkButton, timeAgo } from "@/components/ui";
 import { PlayerCard } from "@/components/player-card";
 import { CONTACT_KINDS, lastContacts } from "@/lib/repo/contacts";
@@ -48,6 +48,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
         <div className="flex flex-wrap gap-2">
           <LinkButton href="/players/new" variant="primary">+ Add a player</LinkButton>
           <LinkButton href="/import">Import your list</LinkButton>
+          {ids.length > 0 && <form action={updateBoardAction}><button className="inline-flex min-h-10 items-center rounded-[3px] bg-white px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Update my board with AI</button></form>}
           {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
         </div>
       </div>

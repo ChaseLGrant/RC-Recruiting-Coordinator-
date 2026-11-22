@@ -32,6 +32,8 @@ export interface OrgSettings {
   pageWatch: { enabled: boolean; everyHours: number };
   /** IANA time zone for showing and reading game times (from campus unless set). */
   timezone: string;
+  /** AI research agent that keeps the board current. */
+  agent: { enabled: boolean; everyDays: number; maxPerDay: number; boardRequestedAt: string | null };
 }
 
 export interface Branding {
@@ -85,6 +87,12 @@ export function orgFromRow(r: Row): Org {
       programDisplayName: s.programDisplayName,
       branding: sanitizeBranding(s.branding),
       timezone: typeof s.timezone === "string" && s.timezone ? s.timezone : timezoneForLocation(r.campus_lat == null ? null : Number(r.campus_lat), r.campus_lng == null ? null : Number(r.campus_lng)),
+      agent: {
+        enabled: s.agent?.enabled ?? true,
+        everyDays: Math.min(30, Math.max(1, Number(s.agent?.everyDays ?? 7))),
+        maxPerDay: Math.min(500, Math.max(1, Number(s.agent?.maxPerDay ?? 25))),
+        boardRequestedAt: s.agent?.boardRequestedAt ?? null,
+      },
       pageWatch: { enabled: s.pageWatch?.enabled ?? true, everyHours: Math.min(168, Math.max(6, Number(s.pageWatch?.everyHours ?? 12))) },
     },
   };

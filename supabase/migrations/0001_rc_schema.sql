@@ -392,6 +392,22 @@ CREATE TABLE IF NOT EXISTS athlete_links (
     UNIQUE (org_id, athlete_id, url)
   );
 
+CREATE TABLE IF NOT EXISTS agent_runs (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    athlete_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    updates_proposed INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    searches INTEGER NOT NULL DEFAULT 0,
+    cost_cents REAL NOT NULL DEFAULT 0,
+    note TEXT,
+    ran_at TEXT NOT NULL
+  );
+
+CREATE INDEX IF NOT EXISTS idx_agent_runs ON agent_runs(org_id, athlete_id, ran_at);
+
 CREATE TABLE IF NOT EXISTS login_attempts (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
@@ -428,4 +444,5 @@ ALTER TABLE pending_imports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE link_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE athlete_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

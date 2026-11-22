@@ -4,6 +4,11 @@ import type { Approval, MessageRow } from "@/lib/repo/approvals";
 import type { CandidateRow } from "@/lib/finder/finder";
 import { timeAgo } from "./ui";
 
+const UPDATE_LABEL: Record<string, string> = {
+  stat: "New stat", commitment: "Commitment", game: "Upcoming game", film: "Film", social: "Social account",
+  school_change: "School change", team_change: "Team change", news: "In the news", contact: "Contact info",
+};
+
 // Plain-language labels and buttons per item type, so a coach can decide in one tap.
 const COPY: Record<Approval["kind"], { label: string; dot: string; yes: string; no: string }> = {
   prospect: { label: "New player for you", dot: "bg-emerald-500", yes: "Add to My Players", no: "Not interested" },
@@ -15,6 +20,7 @@ const COPY: Record<Approval["kind"], { label: string; dot: string; yes: string; 
   compliance: { label: "Compliance check", dot: "bg-rose-500", yes: "Clear to send", no: "Hold" },
   contact_found: { label: "Contact info found", dot: "bg-sky-500", yes: "Save to profile", no: "Don't save" },
   links_found: { label: "Player pages found", dot: "bg-sky-500", yes: "Keep checked", no: "None are him" },
+  crm_update: { label: "Player updates found", dot: "bg-emerald-500", yes: "Apply checked", no: "Skip all" },
 };
 
 export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideCompliance, candidates }: { a: Approval; message?: MessageRow; returnTo?: string; canDecide: boolean; canDecideCompliance: boolean; candidates?: CandidateRow[] }) {
@@ -37,6 +43,25 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
         <form action={decideApprovalAction} className="mt-3">
           <input type="hidden" name="approvalId" value={a.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
+          {a.kind === "crm_update" && (
+            <>
+              <input type="hidden" name="linksForm" value="1" />
+              <ul className="mb-3 divide-y divide-slate-100 border border-slate-200">
+                {((a.payload.updates as Array<{ id: string; type: string; summary: string; sourceUrl: string; sourceTitle: string | null; quote: string }>) ?? []).map((u) => (
+                  <li key={u.id} className="flex items-start gap-3 p-3">
+                    <input type="checkbox" name="accept" value={u.id} defaultChecked className="mt-1 h-5 w-5 shrink-0 accent-[var(--team-primary)]" aria-label={`Apply: ${u.summary}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="eyebrow text-slate-500">{UPDATE_LABEL[u.type] ?? u.type}</div>
+                      <div className="text-sm font-semibold text-slate-900">{u.summary}</div>
+                      <blockquote className="mt-1 border-l-2 border-slate-200 pl-2 text-xs italic text-slate-600">&ldquo;{u.quote}&rdquo;</blockquote>
+                      <a href={u.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-xs text-brand-700 underline">{u.sourceTitle || u.sourceUrl}</a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mb-3 text-xs text-slate-500">Found by RC&apos;s research on public pages. Uncheck anything that looks wrong; nothing changes until you apply it.</p>
+            </>
+          )}
           {a.kind === "links_found" && (
             <>
               <input type="hidden" name="linksForm" value="1" />

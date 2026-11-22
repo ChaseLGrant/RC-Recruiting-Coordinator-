@@ -42,7 +42,7 @@ function toNumber(raw: string): number | null {
 }
 
 /** Innings like "23.2" mean 23⅔ — keep as printed (baseball convention) but validate the decimal. */
-function validFor(key: string, v: number): boolean {
+export function validFor(key: string, v: number): boolean {
   switch (key) {
     case "avg": case "obp": return v >= 0 && v <= 1;
     case "slg": return v >= 0 && v <= 4;

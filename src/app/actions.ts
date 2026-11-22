@@ -698,3 +698,33 @@ export async function decideLinksAction(fd: FormData) {
   revalidatePath("/", "layout");
   redirect(withFlash(`/athletes/${id}#pages`, `Kept ${r.accepted}, dismissed ${r.rejected}.`));
 }
+
+// ---------- AI research agent ----------
+
+export async function researchNowAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  authorize(ctx, "run_missions");
+  const id = str(fd, "athleteId");
+  const { researchPlayer } = await import("@/lib/agent/crm-agent");
+  const r = await researchPlayer(ctx.db, ctx.orgId, id);
+  await audit(ctx, "ai_research", "athlete", id, { status: r.status, costCents: r.costCents });
+  revalidatePath("/", "layout");
+  const msg = r.status === "updates" ? `RC found ${r.proposed} update${r.proposed > 1 ? "s" : ""}. Review them below.` : r.note;
+  redirect(withFlash(`/athletes/${id}#research`, msg, r.status === "error" || r.status === "not_configured" ? "err" : "ok"));
+}
+
+export async function updateBoardAction() {
+  const { ctx, org } = await requireSession();
+  authorize(ctx, "run_missions");
+  await updateOrgSettings({ ...ctx, role: "system" }, { agent: { ...org.settings.agent, boardRequestedAt: new Date().toISOString() } });
+  const n = await ctx.db.get<{ n: number }>("SELECT COUNT(*) AS n FROM follows WHERE org_id = ? AND board_status != 'not_a_fit'", [ctx.orgId]);
+  revalidatePath("/following");
+  redirect(withFlash("/following", `RC will research all ${n?.n ?? 0} players on your board over the next few hours (up to ${org.settings.agent.maxPerDay} a day). Updates show up in Needs your OK.`));
+}
+
+export async function updateAgentSettingsAction(fd: FormData) {
+  const { ctx, org } = await requireSession();
+  await updateOrgSettings(ctx, { agent: { ...org.settings.agent, enabled: Boolean(str(fd, "enabled")), everyDays: Number(str(fd, "everyDays")) || 7, maxPerDay: Number(str(fd, "maxPerDay")) || 25 } });
+  revalidatePath("/settings");
+  redirect(withFlash("/settings#agent", "AI research settings saved."));
+}

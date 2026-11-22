@@ -1,21 +1,47 @@
-# Keeps RC current: every hour, runs due recruiting searches and re-checks
-# linked stat and schedule pages on your live site.
-# Setup (GitHub repo → Settings → Secrets and variables → Actions):
-#   RC_URL       your site, e.g. https://rc-recruiting.vercel.app
-#   CRON_SECRET  the same value you set in Vercel
+# Keeps RC current every hour: saved searches, linked stat/schedule pages,
+# the player page finder, and the AI research agent that keeps boards current.
+#
+# Setup (GitHub repo → Settings → Secrets and variables → Actions → New secret):
+#   DATABASE_URL          your Postgres connection string (same as Vercel's POSTGRES_URL)
+#   ANTHROPIC_API_KEY     for the AI research agent (optional)
+#   GOOGLE_CSE_KEY + GOOGLE_CSE_ID, or BRAVE_SEARCH_API_KEY   for the page finder (optional)
+# Without DATABASE_URL it falls back to calling your site's /api/cron
+# (set RC_URL and CRON_SECRET), which runs the lighter jobs only.
 name: RC hourly update
 on:
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch: {}
+concurrency:
+  group: rc-hourly
+  cancel-in-progress: false
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_CSE_KEY: ${{ secrets.GOOGLE_CSE_KEY }}
+      GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+      RC_URL: ${{ secrets.RC_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
-      - name: Run due missions and stat/schedule checks
-        env:
-          RC_URL: ${{ secrets.RC_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - uses: actions/checkout@v4
+        if: env.DATABASE_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.DATABASE_URL != ''
+        with:
+          node-version: 22
+          cache: npm
+      - name: Run RC's background work (no time limit)
+        if: env.DATABASE_URL != ''
         run: |
-          if [ -z "$RC_URL" ] || [ -z "$CRON_SECRET" ]; then echo "RC_URL / CRON_SECRET not set yet; skipping."; exit 0; fi
+          npm ci
+          npm run worker -- --once
+      - name: Fallback - ping the site's cron endpoint
+        if: env.DATABASE_URL == ''
+        run: |
+          if [ -z "$RC_URL" ] || [ -z "$CRON_SECRET" ]; then echo "No DATABASE_URL or RC_URL/CRON_SECRET set yet; skipping."; exit 0; fi
           curl --fail --silent --show-error --max-time 290 -H "Authorization: Bearer $CRON_SECRET" "$RC_URL/api/cron"
