@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "./db";
 import { sessionInfo, type SessionInfo } from "./auth";
 import { getOrg, type Ctx, type Org, type User } from "./repo";
-import { billingState } from "./billing/plan";
-import { isOwner } from "./billing/schools";
+import { ensureTrialStarted } from "./billing/plan";
 
 export const SESSION_COOKIE = "rc_session";
 
@@ -27,9 +26,9 @@ export async function requireSession(opts: { allowInactive?: boolean } = {}): Pr
   // Shared staff login: everyone picks their name first so their work is attributed.
   if (!s.acting) redirect("/who");
   const user = s.acting;
-  const org = await getOrg(db, user.orgId);
-  // Schools without an active trial or subscription go to Billing (their data is kept).
-  // (RC owners are never locked out — they need /admin to run the business.)
-  if (!opts.allowInactive && !billingState(org).active && !isOwner(user.email)) redirect("/billing");
+  // Coaches are never locked out of their own board. The first visit starts
+  // the school's free trial of RC's automatic updates (no card needed).
+  const org = await ensureTrialStarted(db, await getOrg(db, user.orgId));
+  void opts;
   return { ctx: { db, orgId: user.orgId, userId: user.id, role: user.role }, user, org, shared: s.login.isShared };
 }

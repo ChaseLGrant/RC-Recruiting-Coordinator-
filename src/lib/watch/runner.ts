@@ -11,7 +11,7 @@ import { extractSchedule } from "./schedule";
 import { extractContactInfo } from "./contact-info";
 import { createApproval } from "../repo/approvals";
 import { locateAthlete } from "../domain/geo";
-import { orgIsActive } from "../billing/plan";
+import { orgCanUsePaidServices } from "../billing/plan";
 import { politeFetch, siteLabel } from "./fetcher";
 
 export interface TrackedPage {
@@ -225,7 +225,7 @@ export async function runDuePageChecks(db: Db, budgetMs = Number(process.env.RC_
   const results = [];
   for (const o of orgs) {
     if (Date.now() > deadline) break;
-    if (!(await orgIsActive(db, o.org_id))) continue;
+    if (!(await orgCanUsePaidServices(db, o.org_id))) continue;
     results.push({ orgId: o.org_id, ...(await checkTrackedPages(db, o.org_id, { deadline })) });
   }
   return results;

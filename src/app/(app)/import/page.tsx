@@ -1,5 +1,7 @@
 import { requireSession } from "@/lib/session";
-import { stageListAction } from "@/app/actions";
+import { stageListAction, stagePhotoListAction } from "@/app/actions";
+import { PhotoPicker } from "@/components/photo-picker";
+import { getAgentClient } from "@/lib/agent/crm-agent";
 import { Button, Flash, Input, Label, PageHeader } from "@/components/ui";
 
 export default async function ImportPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -9,6 +11,20 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto max-w-3xl">
       <Flash flash={sp.flash} error={sp.error} />
       <PageHeader title="Bring in your list" subtitle="Already tracking recruits in a spreadsheet? Bring it in as is. RC matches your columns, keeps your notes, and puts everyone in My Players." />
+      {getAgentClient() && (
+        <form action={stagePhotoListAction} className="mb-6 grid gap-4 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-6">
+          <div>
+            <div className="eyebrow text-slate-500">Fastest</div>
+            <h2 className="font-display text-3xl font-extrabold uppercase leading-none">Snap a photo of your list</h2>
+            <p className="mt-1 text-sm text-slate-600">No spreadsheet? Take a picture. RC copies the names and details exactly as written, and you check every row before anything is saved.</p>
+          </div>
+          <PhotoPicker name="photos" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button>Read my photos</Button>
+            <span className="text-xs text-slate-500">Takes about 20 seconds. Anything RC can&apos;t read is left blank, never guessed.</span>
+          </div>
+        </form>
+      )}
       <form action={stageListAction} className="grid gap-6 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-6">
         <div className="grid gap-6 sm:grid-cols-2">
           <div>

@@ -51,6 +51,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
           <LinkButton href="/players/new" variant="primary">+ Add a player</LinkButton>
           <LinkButton href="/import">Import your list</LinkButton>
           {ids.length > 0 && boardAccess.automatic && <form action={updateBoardAction}><button className="inline-flex min-h-10 items-center rounded-[3px] bg-white px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Update my board with AI</button></form>}
+          {ids.length > 0 && <a href="/api/export/board" download className="inline-flex min-h-10 items-center rounded-[3px] bg-white px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Download my board</a>}
           {ids.length > 1 && <LinkButton href={`/compare?${ids.slice(0, 3).map((i) => `ids=${i}`).join("&")}`}>Compare top {Math.min(3, ids.length)}</LinkButton>}
         </div>
       </div>

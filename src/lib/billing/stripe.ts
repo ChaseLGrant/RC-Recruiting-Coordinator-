@@ -7,6 +7,8 @@ import Stripe from "stripe";
 import type { Db } from "../db";
 import { audit, getOrg, logEvent, updateOrgSettings, type Ctx, type Org, type Plan } from "../repo";
 import { TRIAL_DAYS } from "./plan";
+// Note: with the default no-card trial, schools are already in their trial (trialUsed) when they
+// subscribe, so checkout charges from the start (or, if they subscribe mid-trial, from the trial's end).
 
 export function getStripe(env: Record<string, string | undefined> = process.env): Stripe | null {
   return env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null;
@@ -19,7 +21,10 @@ export function priceFor(interval: "month" | "year", env: Record<string, string 
 export async function createCheckoutUrl(stripe: Stripe, org: Org, opts: { interval: "month" | "year"; email: string; baseUrl: string }): Promise<string> {
   const price = priceFor(opts.interval);
   if (!price) throw new Error(`No ${opts.interval === "year" ? "yearly" : "monthly"} price is set up yet.`);
-  const trialDays = org.settings.plan.trialUsed ? 0 : TRIAL_DAYS();
+  // Subscribing during a no-card trial: keep the remaining free days, then charge automatically.
+  const p = org.settings.plan;
+  const remaining = p.status === "trialing" && p.trialEndsAt ? Math.ceil((Date.parse(p.trialEndsAt) - Date.now()) / 86_400_000) : 0;
+  const trialDays = !p.trialUsed ? TRIAL_DAYS() : remaining > 0 ? remaining : 0;
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],

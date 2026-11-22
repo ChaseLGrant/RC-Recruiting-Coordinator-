@@ -36,7 +36,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const stats = await ctx.db.get<{ players: number; contacts: number; checks: number; updates: number }>(
     `SELECT (SELECT COUNT(*) FROM follows WHERE org_id = ?) AS players,
             (SELECT COUNT(*) FROM contacts WHERE org_id = ?) AS contacts,
-            (SELECT COUNT(*) FROM agent_runs WHERE org_id = ?) AS checks,
+            (SELECT COUNT(*) FROM agent_runs WHERE org_id = ? AND status != 'photo_import') AS checks,
             (SELECT COUNT(*) FROM events WHERE org_id = ? AND type IN ('metric_updated','schedule_changed','game_identified')) AS updates`,
     [org.id, org.id, org.id, org.id],
   );
@@ -53,7 +53,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <span className="font-display text-2xl font-extrabold uppercase">{team}</span>
           <div className="flex items-center gap-4 text-xs uppercase tracking-wider">
-            {state.active && <Link href="/" className="text-white/80 hover:text-white">Back to RC</Link>}
+            <Link href="/" className="text-white/80 hover:text-white">Back to RC</Link>
             <form action={logoutAction}><button className="text-white/60 hover:text-white">Sign out</button></form>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <h1 className="font-display text-5xl font-extrabold uppercase leading-none">Billing</h1>
         <p className="mt-2 text-[15px] text-slate-600">
           <b>{state.message}</b>
-          {p.trialEndsAt && state.trialing ? ` · trial ends ${p.trialEndsAt.slice(0, 10)}, then your card is charged automatically` : ""}
+          {p.trialEndsAt && state.trialing ? ` · trial ends ${p.trialEndsAt.slice(0, 10)}${p.stripeSubscriptionId ? ", then your card is charged automatically" : ""}` : ""}
           {p.currentPeriodEnd && p.status === "active" && !p.cancelAtPeriodEnd ? ` · renews ${p.currentPeriodEnd.slice(0, 10)}` : ""}
         </p>
         {state.warning && <p className="mt-3 border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-950">{state.warning}</p>}
@@ -76,6 +76,13 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
             </div>
           ))}
         </div>}
+
+        <div className="mt-6 border border-slate-900/10 bg-white p-5 text-sm text-slate-700">
+          <h2 className="font-display text-2xl font-extrabold uppercase">What&apos;s always free</h2>
+          <p className="mt-1">Your board, player profiles, notes, contact log, search, imports and exports. <b>RC never locks your data.</b></p>
+          <h2 className="font-display mt-4 text-2xl font-extrabold uppercase">What a subscription runs</h2>
+          <p className="mt-1">The automatic staff work: AI research on your players, daily saved searches, automatic stat and schedule updates, and finding players&apos; pages and links.</p>
+        </div>
 
         {!billingEnforced() ? (
           <p className="mt-6 text-sm text-slate-600">Billing isn&apos;t set up for RC yet, so everything is open. Nothing to do here.</p>
@@ -92,9 +99,9 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           )
         ) : isAdmin ? (
           <div className="mt-6">
-            <h2 className="font-display text-3xl font-extrabold uppercase">{p.trialUsed ? "Subscribe to keep RC running" : `Start your ${TRIAL_DAYS()}-day free trial`}</h2>
+            <h2 className="font-display text-3xl font-extrabold uppercase">{p.trialUsed ? (state.trialing ? "Keep the automatic updates after your trial" : "Turn the automatic updates back on") : `Start your ${TRIAL_DAYS()}-day free trial`}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              {p.trialUsed ? "Pick a plan. You can cancel any time." : `Nothing is charged today. After ${TRIAL_DAYS()} days your card is charged automatically. Cancel any time before then and you won't pay.`}
+              {p.trialUsed ? (state.trialing && state.daysLeftInTrial ? `Add a card now and you still get your ${state.daysLeftInTrial} free days. Nothing is charged until your trial ends. Cancel any time.` : "Pick a plan. You can cancel any time, and your board stays free either way.") : `Nothing is charged today. After ${TRIAL_DAYS()} days your card is charged automatically. Cancel any time before then and you won't pay.`}
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {(["year", "month"] as const).filter((i) => priceFor(i)).map((i) => (
@@ -103,14 +110,14 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                   <div className="eyebrow text-slate-500">{i === "year" ? "Yearly" : "Monthly"}</div>
                   <div className="font-display mt-1 text-4xl font-extrabold">{(i === "year" ? yearly : monthly) ?? (i === "year" ? "Yearly plan" : "Monthly plan")}</div>
                   <p className="mt-1 text-xs text-slate-500">{i === "year" ? "Best for athletic departments paying once a year." : "Pay month to month."}</p>
-                  <button className="mt-4 w-full rounded-[3px] bg-brand-600 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">{p.trialUsed ? "Subscribe" : "Start free trial"}</button>
+                  <button className="mt-4 w-full rounded-[3px] bg-brand-600 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">{p.trialUsed ? (state.trialing ? "Add card · keep it running" : "Subscribe") : "Start free trial"}</button>
                 </form>
               ))}
             </div>
             <p className="mt-3 text-xs text-slate-500">Secure checkout by Stripe. Promo codes accepted. Paying by invoice or purchase order? Reply to your RC email and we&apos;ll set it up.</p>
           </div>
         ) : (
-          <p className="mt-6 text-sm text-slate-600">Your head coach needs to start the subscription. Your players, notes and contacts are all saved.</p>
+          <p className="mt-6 text-sm text-slate-600">Your head coach manages the subscription. Your players, notes and contacts are always yours to use.</p>
         )}
       </main>
     </div>

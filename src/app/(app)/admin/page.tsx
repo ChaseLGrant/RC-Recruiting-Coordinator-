@@ -59,7 +59,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <div className="text-xs text-slate-500">{n?.staff ?? 0} staff · {n?.players ?? 0} players · joined {timeAgo(created)}{Number(n?.invited ?? 0) > 0 ? " · invite pending" : ""}</div>
               </div>
               <div className="text-sm">
-                <Badge tone={state.active ? (state.reason === "trialing" ? "blue" : "green") : "red"}>{state.message}</Badge>
+                <Badge tone={state.active ? (state.reason === "trialing" ? "blue" : "green") : "amber"}>{state.message}</Badge>
                 <div className="mt-1 text-xs text-slate-500">AI: {n?.checks ?? 0} checks this month · ${(Number(n?.cents ?? 0) / 100).toFixed(2)}</div>
               </div>
               <form action={adminNewInviteAction}><input type="hidden" name="orgId" value={org.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">New invite link</button></form>

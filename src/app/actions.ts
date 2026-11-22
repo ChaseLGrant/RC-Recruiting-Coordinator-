@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { authenticate, createSession, createUser, destroySession } from "@/lib/auth";
 import { SESSION_COOKIE, requireSession } from "@/lib/session";
-import { createDemoWorkspace, createProgram } from "@/lib/onboarding";
+import { createDemoWorkspace, createGuestDemo, createProgram } from "@/lib/onboarding";
 import {
   addNote, completeTask, createMission, createSource, deleteMission, deleteProfile, markBriefReviewed, saveProfile,
   setFollow, setMissionActive, updateAthleteContact, updateCampus, updateOrgSettings, authorize, audit, logEvent, getMission,
@@ -59,6 +59,17 @@ export async function loginAction(fd: FormData) {
   if (!user) redirect("/login?error=" + encodeURIComponent("Email or password is incorrect."));
   await startSession(user.id);
   redirect("/");
+}
+
+export async function tryDemoAction() {
+  let userId: string;
+  try {
+    ({ userId } = await createGuestDemo(await getDb()));
+  } catch (e) {
+    redirect("/login?error=" + encodeURIComponent(e instanceof Error ? e.message : "Couldn't open the demo."));
+  }
+  await startSession(userId);
+  redirect("/?welcome=demo");
 }
 
 export async function logoutAction() {
@@ -520,6 +531,22 @@ export async function stageListAction(fd: FormData) {
   redirect(`/import/${id}`);
 }
 
+export async function stagePhotoListAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  let id: string;
+  try {
+    const photos = fd.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+    if (photos.length === 0) throw new Error("Take or choose a photo of your list first.");
+    const { readRosterPhotos } = await import("@/lib/import/photo");
+    const { stageImport } = await import("@/lib/import/service");
+    const table = await readRosterPhotos(ctx.db, ctx.orgId, await Promise.all(photos.map(async (f) => ({ bytes: Buffer.from(await f.arrayBuffer()), mediaType: f.type }))));
+    id = await stageImport(ctx, str(fd, "listName") || `Photo list ${new Date().toISOString().slice(0, 10)}`, table);
+  } catch (e) {
+    redirect(withFlash("/import", e instanceof Error ? e.message : "Couldn't read that photo.", "err"));
+  }
+  redirect(`/import/${id}?from=photo`);
+}
+
 export async function confirmListAction(fd: FormData) {
   const { ctx } = await requireSession();
   const id = str(fd, "importId");
@@ -790,7 +817,7 @@ export async function acceptInviteAction(fd: FormData) {
     redirect(`/join/${encodeURIComponent(token)}?error=` + encodeURIComponent(e instanceof Error ? e.message : "Couldn't set up your account"));
   }
   await startSession(userId);
-  redirect("/billing");
+  redirect("/");
 }
 
 async function requireOwner() {

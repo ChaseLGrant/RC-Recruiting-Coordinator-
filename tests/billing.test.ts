@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createDb } from "@/lib/db";
 import { createProgram } from "@/lib/onboarding";
 import { getOrg, listUsers, type Org } from "@/lib/repo";
-import { billingState } from "@/lib/billing/plan";
+import { billingState, ensureTrialStarted } from "@/lib/billing/plan";
 import { applyStripeEvent } from "@/lib/billing/stripe";
 import { acceptInvite, createInvite, createSchool, inviteInfo, isOwner } from "@/lib/billing/schools";
 import { authenticate } from "@/lib/auth";
@@ -22,14 +22,18 @@ describe("subscription rules", () => {
   it("nothing is locked until Stripe is set up", () => {
     expect(billingState(orgWith({}), now, {}).active).toBe(true);
   });
-  it("new schools must start the trial; trials and paid plans are active; ended plans are not", () => {
+  it("trials and paid plans run the automation; ended plans fall back to the free board (never locked)", () => {
     expect(billingState(orgWith({}), now, ENV)).toMatchObject({ active: false, reason: "needs_subscription", message: "Start your 90-day free trial" });
     const t = billingState(orgWith({ status: "trialing", trialEndsAt: new Date(now + 5 * day).toISOString() }), now, ENV);
     expect(t).toMatchObject({ active: true, trialing: true, daysLeftInTrial: 5 });
-    expect(t.warning).toMatch(/ends in 5 days.*charged automatically/);
+    expect(t.warning).toMatch(/ends in 5 days.*board stays free/); // no card on file: no charge
+    const carded = billingState(orgWith({ status: "trialing", stripeSubscriptionId: "sub_1", trialEndsAt: new Date(now + 5 * day).toISOString() }), now, ENV);
+    expect(carded.warning).toMatch(/ends in 5 days.*charged automatically/);
+    // A no-card trial that has run out: free plan, automation paused.
+    expect(billingState(orgWith({ status: "trialing", trialUsed: true, trialEndsAt: new Date(now - day).toISOString() }), now, ENV)).toMatchObject({ active: false, reason: "free" });
     expect(billingState(orgWith({ status: "active", interval: "year" }), now, ENV)).toMatchObject({ active: true, message: "Subscribed (yearly)" });
     expect(billingState(orgWith({ status: "past_due" }), now, ENV).warning).toMatch(/didn't go through/);
-    expect(billingState(orgWith({ status: "canceled", trialUsed: true }), now, ENV)).toMatchObject({ active: false, reason: "ended" });
+    expect(billingState(orgWith({ status: "canceled", trialUsed: true }), now, ENV)).toMatchObject({ active: false, reason: "free" });
   });
   it("owners can grant complimentary or invoice access; demos stay open", () => {
     expect(billingState(orgWith({ comp: true }), now, ENV).active).toBe(true);
@@ -68,7 +72,7 @@ describe("Stripe webhooks", () => {
 
     await send("customer.subscription.deleted", sub("canceled"), 300);
     org = await getOrg(db, p.orgId);
-    expect(billingState(org, Date.now(), ENV)).toMatchObject({ active: false, reason: "ended" });
+    expect(billingState(org, Date.now(), ENV)).toMatchObject({ active: false, reason: "free" });
 
     // Inactive schools: background work pauses and AI stops (no cost).
     Object.assign(process.env, ENV);
@@ -76,6 +80,27 @@ describe("Stripe webhooks", () => {
     await db.run("INSERT INTO missions (id, org_id, profile_id, name, schedule, actions_json, active, next_run_at, created_by, created_at) VALUES ('mi', ?, 'pr', 'x', 'daily', '{}', 1, '2000-01-01', 'u', '2026')", [p.orgId]);
     expect(await runDueMissions(db)).toEqual([]);
     expect((await aiAccess(db, org)).canRun).toBe(false);
+  });
+});
+
+describe("no-card free trial", () => {
+  afterEach(() => { delete process.env.RC_TRIAL_REQUIRES_CARD; });
+  it("starts automatically the first time a school uses RC, only once, and not when a card is required", async () => {
+    const db = await createDb({ sqlitePath: ":memory:", url: "" });
+    const orgId = await createSchool(db, { programName: "Test U Baseball", campusZip: "92069" });
+    let org = await getOrg(db, orgId);
+    expect(org.settings.plan.status).toBe("none");
+    org = await ensureTrialStarted(db, org);
+    expect(org.settings.plan).toMatchObject({ status: "trialing", trialUsed: true, stripeSubscriptionId: null });
+    const left = billingState(org, Date.now(), ENV);
+    expect(left).toMatchObject({ active: true, trialing: true, daysLeftInTrial: 90 });
+    // Running it again doesn't restart the clock.
+    const ends = org.settings.plan.trialEndsAt;
+    expect((await ensureTrialStarted(db, org)).settings.plan.trialEndsAt).toBe(ends);
+
+    process.env.RC_TRIAL_REQUIRES_CARD = "true";
+    const other = await getOrg(db, await createSchool(db, { programName: "Card U", campusZip: "92069" }));
+    expect((await ensureTrialStarted(db, other)).settings.plan.status).toBe("none");
   });
 });
 

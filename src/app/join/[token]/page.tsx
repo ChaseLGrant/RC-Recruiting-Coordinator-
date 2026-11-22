@@ -42,7 +42,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
           </div>
         </div>
         <p className="mx-auto mt-4 max-w-2xl text-[15px] text-white/75">
-          RC is ready for your program. Set up your account and your staff below. {billingEnforced() ? `Then start your ${TRIAL_DAYS()}-day free trial.` : ""}
+          RC is ready for your program. Set up your account and your staff below. {billingEnforced() ? `Your ${TRIAL_DAYS()}-day free trial starts when you sign in. No card needed.` : ""}
         </p>
       </header>
       <main className="mx-auto max-w-2xl px-4 py-8">
@@ -68,7 +68,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
               <div><Label>Staff login password (different from yours)</Label><Input name="staffPassword" type="password" minLength={8} autoComplete="new-password" /></div>
             </div>
           </section>
-          <Button className="w-full sm:w-auto">{billingEnforced() ? "Create accounts & continue" : "Create accounts"}</Button>
+          <Button className="w-full sm:w-auto">"Create accounts"</Button>
           <p className="text-xs text-slate-500">By continuing you agree to RC&apos;s terms and privacy policy.</p>
         </form>
       </main>

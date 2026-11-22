@@ -6,7 +6,7 @@ import { FIELDS, applyMapping } from "@/lib/import/mapping";
 import { confirmListAction } from "@/app/actions";
 import { Button, Flash, PageHeader } from "@/components/ui";
 
-export default async function ImportPreviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function ImportPreviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; from?: string }> }) {
   const { ctx } = await requireSession();
   const { id } = await params;
   const sp = await searchParams;
@@ -18,6 +18,7 @@ export default async function ImportPreviewPage({ params, searchParams }: { para
     <div>
       <Flash error={sp.error} />
       <PageHeader title="Check your columns" subtitle={<>RC read <b>{staged.rows.length}</b> players from &ldquo;{staged.listName}&rdquo; and matched <b>{matched}</b> of {staged.headers.length} columns. Fix anything that&apos;s wrong, then import.</>} />
+      {sp.from === "photo" && <p className="mb-4 border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-950">Read from your photo. Check the names and numbers below against the page. Blank cells are ones RC couldn&apos;t read clearly.</p>}
       <form action={confirmListAction}>
         <input type="hidden" name="importId" value={staged.id} />
         <input type="hidden" name="columnCount" value={staged.headers.length} />
