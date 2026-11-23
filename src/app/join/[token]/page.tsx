@@ -32,7 +32,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
         <div className="mx-auto flex max-w-2xl items-center gap-4">
           {b.logoDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-16 object-contain" />
+            <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-auto max-w-[8rem] object-contain" />
           ) : (
             <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-4xl font-extrabold">{team[0]}</span>
           )}
@@ -62,7 +62,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
           <section>
             <h2 className="font-display text-2xl font-extrabold uppercase">Your staff</h2>
             <p className="mb-3 text-sm text-slate-500">One name per line, with a title if you like. They&apos;ll sign in with a shared staff login and tap their name.</p>
-            <textarea name="staff" rows={4} className="w-full rounded-[3px] border border-slate-200 px-3 py-2 text-sm" placeholder={"Hayden Carter, Pitching Coach\nChase Grant, Outfield Coach"} />
+            <textarea name="staff" rows={4} className="w-full rounded-[3px] border border-slate-200 px-3 py-2 text-sm" placeholder={"Alex Rivera, Pitching Coach\nSam Brooks, Recruiting Coordinator"} />
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div><Label>Staff login email</Label><Input name="staffEmail" type="email" placeholder="baseballstaff@yourschool.edu" /></div>
               <div><Label>Staff login password (different from yours)</Label><Input name="staffPassword" type="password" minLength={8} autoComplete="new-password" /></div>

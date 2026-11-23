@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/" className="flex items-center gap-3" aria-label={`${team} home`}>
             {b.logoDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={b.logoDataUrl} alt={`${team} logo`} className="h-11 w-11 object-contain" />
+              <img src={b.logoDataUrl} alt={`${team} logo`} className="h-11 w-auto max-w-[5rem] object-contain" />
             ) : (
               <span className="font-display grid h-11 w-11 place-items-center bg-[var(--team-primary)] text-xl font-extrabold">{team.slice(0, 1)}</span>
             )}

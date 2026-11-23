@@ -40,7 +40,7 @@ export default async function PreviewLanding({ params, searchParams }: { params:
           <div className="flex items-center gap-4">
             {b.logoDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
+              <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-auto max-w-[8rem] object-contain sm:h-20 sm:max-w-[10rem]" />
             ) : (
               <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-4xl font-extrabold sm:h-20 sm:w-20">{team[0]}</span>
             )}

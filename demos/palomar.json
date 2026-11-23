@@ -1,5 +1,5 @@
 {
-  "_note": "Staff from palomarathletics.com coach pages (some dated 2024) \u2014 confirm current staff and titles before sending. The whole staff signs in with one staff login and taps their name. Put the official logo at demos/palomar-logo.png (or .svg) and re-run.",
+  "_note": "Staff confirmed Nov 2026: Ben Adams (Head Coach), Dylan Tye. The whole staff signs in with one staff login and taps their name. Logo: demos/palomar-logo.png.",
   "programName": "Palomar College Baseball (DEMO)",
   "teamName": "Palomar Baseball",
   "campusZip": "92069",
@@ -15,23 +15,13 @@
       "role": "head_coach"
     },
     {
-      "name": "Hayden Carter",
-      "title": "Pitching Coach / Recruiting Coordinator",
-      "role": "assistant_coach"
-    },
-    {
-      "name": "Chase Grant",
-      "title": "Outfield Coach",
-      "role": "assistant_coach"
-    },
-    {
-      "name": "Jeff Doyle",
+      "name": "Dylan Tye",
       "title": "Assistant Coach",
       "role": "assistant_coach"
     }
   ],
   "profile": {
-    "name": "2027\u201328 Middle Infielders \u00b7 North County",
+    "name": "2027–28 Middle Infielders · North County",
     "gradYears": [
       2027,
       2028

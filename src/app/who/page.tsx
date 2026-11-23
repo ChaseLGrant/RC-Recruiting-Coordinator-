@@ -24,7 +24,7 @@ export default async function WhoPage({ searchParams }: { searchParams: Promise<
       <div className="w-full max-w-2xl">
         <div className="mb-8 flex items-center justify-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {b.logoDataUrl ? <img src={b.logoDataUrl} alt="" className="h-14 w-14 object-contain" /> : <span className="font-display grid h-14 w-14 place-items-center bg-[var(--team-primary)] text-3xl font-extrabold">{team[0]}</span>}
+          {b.logoDataUrl ? <img src={b.logoDataUrl} alt="" className="h-14 w-auto max-w-[7rem] object-contain" /> : <span className="font-display grid h-14 w-14 place-items-center bg-[var(--team-primary)] text-3xl font-extrabold">{team[0]}</span>}
           <span className="font-display text-3xl font-extrabold uppercase">{team}</span>
         </div>
         <h1 className="font-display text-center text-5xl font-extrabold uppercase sm:text-6xl">Who&apos;s using RC?</h1>
