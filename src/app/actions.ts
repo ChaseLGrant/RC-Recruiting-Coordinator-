@@ -890,7 +890,7 @@ export async function adminImportProspectsAction(fd: FormData) {
     if (!(file instanceof File) || file.size === 0) throw new Error("Choose your school list (CSV).");
     if (file.size > 4_000_000) throw new Error("That file is over 4 MB. Split it into smaller lists.");
     const { importProspects } = await import("@/lib/outreach/prospects");
-    const r = await importProspects(ctx.db, await file.text());
+    const r = await importProspects(ctx.db, await file.text(), { baseUrl: await baseUrl() });
     await audit(ctx, "prospects_imported", "org", ctx.orgId, { added: r.added, updated: r.updated });
     msg = `${r.added} schools added, ${r.updated} updated, ${r.logos} logos downloaded.${r.problems.length ? ` ${r.problems.length} notes: ${r.problems.slice(0, 4).join(" ")}${r.problems.length > 4 ? " …" : ""}` : ""}`;
   } catch (e) {

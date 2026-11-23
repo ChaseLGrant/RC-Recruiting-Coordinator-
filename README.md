@@ -171,7 +171,9 @@ You need a Vercel account (you already have one) and this GitHub repo.
 
 1. **Create the site.** On vercel.com, click **Add New → Project**, pick this repository and the `claude/determined-bohr-nzx42q` branch (or merge it to `main` first), then click **Deploy**. The first deploy works without a database, but data won't persist until step 2.
 2. **Add the database.** In the Vercel project, go to **Storage → Create Database → Supabase** (or Neon), and connect it to the project. Vercel adds `POSTGRES_URL` automatically, and RC creates its tables on first start.
-3. **Add one secret.** Under **Settings → Environment Variables**, add `CRON_SECRET` with any long random value (for example, generate one with a password manager). Then go to **Deployments → ⋯ → Redeploy**.
+3. **Add two settings.** Under **Settings → Environment Variables**, add `CRON_SECRET` with any long random value (for example, generate one with a password manager) and `RC_ADMIN_EMAILS` with your own email. Then go to **Deployments → ⋯ → Redeploy**.
+   - Open the site, go to `/signup` and create your account with that same email. That account gets the **RC owner** page and **Outreach**.
+   - School logos can live in the site itself: put them in `public/logos/` and use `/logos/<file>.png` in the Logo URL column. `samples/outreach-example.csv` has Palomar ready to upload.
 4. **Build the Palomar demo** (once). Run this from any terminal, or ask Claude to run it:
 
    ```bash

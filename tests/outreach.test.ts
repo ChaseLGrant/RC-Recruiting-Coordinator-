@@ -12,14 +12,14 @@ const fakeFetch = (async (url: string) => url.includes("good")
 
 const LIST = `Program,Team,ZIP,Primary color,Secondary color,Accent color,Logo URL,Coach,Email,Conference
 Palomar College Baseball,Palomar Baseball,92069,#c8102e,141414,#aaa,https://x.test/good.png,Coach Ben Adams,ben@palomar.test,PCAC
-Mesa College Baseball,Mesa Olympians,92111,#00205b,#000000,,https://x.test/missing.png,Coach Lee,lee@mesa.test,PCAC
+Mesa College Baseball,Mesa Olympians,92111,#00205b,#000000,,/logos/missing.png,Coach Lee,lee@mesa.test,PCAC
 Nowhere U,,00000,,,,,,,
 `;
 
 describe("outreach to every program", () => {
   it("imports a school list with colors and logos, and gives each a personal link", async () => {
     const db = await createDb({ sqlitePath: ":memory:", url: "" });
-    const r = await importProspects(db, LIST, { fetchImpl: fakeFetch });
+    const r = await importProspects(db, LIST, { fetchImpl: fakeFetch, baseUrl: "https://rc.test" });
     expect(r).toMatchObject({ added: 2, updated: 0, logos: 1 });
     expect(r.problems.join(" ")).toMatch(/Mesa.*logo/);
     expect(r.problems.join(" ")).toMatch(/Nowhere U.*ZIP/);

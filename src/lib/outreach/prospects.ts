@@ -91,7 +91,7 @@ export async function fetchLogo(url: string, fetchImpl: typeof fetch = fetch): P
 export interface ProspectImportResult { added: number; updated: number; logos: number; problems: string[] }
 
 /** Adds or updates schools from a CSV. Re-uploading the same school (same name) updates it and keeps its link. */
-export async function importProspects(db: Db, csvText: string, opts: { fetchImpl?: typeof fetch } = {}): Promise<ProspectImportResult> {
+export async function importProspects(db: Db, csvText: string, opts: { fetchImpl?: typeof fetch; baseUrl?: string } = {}): Promise<ProspectImportResult> {
   const rows = parseCsv(csvText.replace(/^﻿/, "")).filter((r) => r.some((c) => c.trim()));
   if (rows.length < 2) throw new Error("The list needs a header row and at least one school.");
   const head = rows[0].map((h) => h.trim().toLowerCase());
@@ -107,7 +107,9 @@ export async function importProspects(db: Db, csvText: string, opts: { fetchImpl
     if (!geocode(zip)) { out.problems.push(`Row ${n + 2} (${program}): couldn't find ZIP "${zip}".`); continue; }
     const existing = await db.get<{ id: string; branding_json: string }>("SELECT id, branding_json FROM prospects WHERE lower(program_name) = lower(?)", [program]);
     const before = existing ? sanitizeBranding(JSON.parse(existing.branding_json)) : null;
-    const logoUrl = get(r, "logo");
+    // "/logos/palomar.png" means a logo saved in RC's own public/logos folder.
+    const rawLogo = get(r, "logo");
+    const logoUrl = rawLogo.startsWith("/") && opts.baseUrl ? opts.baseUrl.replace(/\/$/, "") + rawLogo : rawLogo;
     const logo = logoUrl ? await fetchLogo(logoUrl, opts.fetchImpl) : null;
     if (logoUrl && !logo) out.problems.push(`Row ${n + 2} (${program}): couldn't download the logo, so the preview shows the team's initial instead.`);
     if (logo) out.logos++;
