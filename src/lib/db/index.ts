@@ -131,6 +131,15 @@ export async function createDb(opts?: { url?: string; sqlitePath?: string }): Pr
       /* column already exists */
     }
   }
+  if (db.driver === "postgres") {
+    // Supabase also exposes tables through its public API. RC never uses that API, so lock
+    // every RC table to it (row-level security on, no policies). RC's own server connection
+    // is the table owner and is unaffected.
+    for (const stmt of SCHEMA) {
+      const t = stmt.match(/CREATE TABLE IF NOT EXISTS (\w+)/)?.[1];
+      if (t) await db.run(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
+    }
+  }
   return db;
 }
 
