@@ -54,7 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <section className="relative overflow-hidden bg-[var(--team-ink)] px-5 pb-8 pt-8 text-white sm:px-10 sm:pb-10 sm:pt-12">
         <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[repeating-linear-gradient(135deg,transparent_0_22px,rgba(255,255,255,0.035)_22px_44px)]" />
         <div className="relative max-w-3xl">
-          <p className="eyebrow text-white/60">{greeting()}, Coach {lastName}</p>
+          <p className="eyebrow text-white/60">{greeting(org.settings.timezone)}, Coach {lastName}</p>
           <h1 className="font-display mt-2 text-5xl font-extrabold uppercase leading-[0.9] sm:text-7xl">Who are you<br />looking for?</h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/70">Say it the way you&apos;d tell an assistant. RC finds the players and shows where every number came from.</p>
           <div className="mt-6"><SearchBox autoFocus={!hasData} /></div>
@@ -161,7 +161,11 @@ function Stat({ href, n, label, sub, highlight }: { href: string; n: number; lab
   );
 }
 
-function greeting() {
-  const h = new Date().getHours();
+function greeting(tz?: string) {
+  // The server runs in UTC; greet by the program's own time zone.
+  let h = new Date().getHours();
+  try {
+    if (tz) h = Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  } catch { /* unknown zone: fall back to server time */ }
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
