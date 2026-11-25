@@ -31,7 +31,7 @@ export function NavLinks({ pending }: { pending: number }) {
       {TABS.map((t) => (
         <Link key={t.href} href={t.href} className={`relative flex items-center px-4 text-[13px] font-semibold uppercase tracking-[0.1em] transition ${isActive(path, t.href) ? "text-white after:absolute after:inset-x-4 after:-bottom-1 after:h-1 after:bg-white" : "text-white/60 hover:text-white"}`}>
           {t.label}
-          {t.href === "/" && pending > 0 && <span className="ml-2 bg-[var(--team-accent)] px-1.5 py-0.5 text-[10px] font-bold text-on-accent">{pending}</span>}
+          {t.href === "/" && pending > 0 && <span className="ml-2 bg-[var(--team-mark)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--team-on-mark)]">{pending}</span>}
         </Link>
       ))}
     </nav>
@@ -47,7 +47,7 @@ export function BottomTabs({ pending }: { pending: number }) {
           <Link key={t.href} href={t.href} className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold uppercase tracking-wider ${isActive(path, t.href) ? "text-brand-text" : "text-slate-500"}`}>
             <Icon d={t.icon} />
             {t.label}
-            {t.href === "/" && pending > 0 && <span className="absolute right-[28%] top-1.5 bg-[var(--team-accent)] px-1.5 text-[10px] font-bold text-on-accent">{pending}</span>}
+            {t.href === "/" && pending > 0 && <span className="absolute right-[28%] top-1.5 bg-brand-600 px-1.5 text-[10px] font-bold text-on-brand">{pending}</span>}
           </Link>
         ))}
       </div>

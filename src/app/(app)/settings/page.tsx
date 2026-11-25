@@ -10,7 +10,9 @@ import { getAgentClient } from "@/lib/agent/crm-agent";
 import { aiAccess } from "@/lib/agent/entitlement";
 import { can } from "@/lib/domain/permissions";
 import { ROLE_LABEL, type Role } from "@/lib/domain/types";
-import { updateAgentSettingsAction, setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction } from "@/app/actions";
+import { updateAgentSettingsAction, setSharedLoginAction, addStaffProfileAction, updateStatTrackingAction, checkPagesNowAction, updateBrandingAction, importCsvAction, inviteUserAction, syncSourcesAction, updateComplianceAction, updateOutreachSettingsAction, updateProgramAction, updateSignInLinkAction } from "@/app/actions";
+import { ensureProgramSlug } from "@/lib/program-link";
+import { headers } from "next/headers";
 import { Badge, Button, Card, Flash, Input, Label, PageHeader, Select, fmtDateTime, timeAgo } from "@/components/ui";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string }> }) {
@@ -30,6 +32,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const email = getEmailProvider();
   const ai = getAiProvider();
   const canSettings = can(user.role, "manage_settings");
+  const slug = await ensureProgramSlug(ctx.db, org);
+  const h = await headers();
+  const origin = process.env.RC_PUBLIC_URL?.replace(/\/$/, "") ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "localhost:3000"}`;
 
   return (
     <div className="space-y-6">
@@ -65,6 +70,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </div>
           </div>
         </form>
+        <p className="mt-3 text-xs text-slate-500">RC picks readable text for your colors automatically, so light colors like gold or white still work.</p>
+        <div className="mt-5 border-t border-slate-100 pt-5">
+          <h3 className="text-sm font-bold">Staff sign-in page</h3>
+          {slug ? (
+            <>
+              <p className="mt-1 text-sm text-slate-600">Your staff signs in at <a href={`/p/${slug}`} className="font-semibold text-brand-text underline">{origin.replace(/^https?:\/\//, "")}/p/{slug}</a>, in your colors with your logo. Bookmark it or add it to a phone&apos;s home screen.</p>
+              <form action={updateSignInLinkAction} className="mt-3 flex max-w-xl flex-wrap items-end gap-2">
+                <div className="min-w-0 flex-1"><Label>Link name</Label><div className="flex items-center rounded-[4px] border border-slate-200 bg-white pl-3 text-sm text-slate-400"><span className="shrink-0">/p/</span><input name="slug" defaultValue={slug} className="min-w-0 flex-1 bg-transparent px-1 py-2 text-slate-900 outline-none" /></div></div>
+                <Button variant="secondary" disabled={!canSettings}>Save link</Button>
+              </form>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-slate-600">Programs get their own branded sign-in page once they&apos;re set up for real. This is a demo.</p>
+          )}
+        </div>
       </Card>
 
       <Card title="Data sources" id="sources" action={<form action={syncSourcesAction}><Button variant="secondary" className="text-xs">Check connected sources now</Button></form>}>

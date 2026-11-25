@@ -225,11 +225,13 @@ export async function createSchoolDemo(db: Db, input: SchoolDemoInput): Promise<
 
 /** Generic demo used by the sign-up page. */
 export async function createDemoWorkspace(db: Db, email: string, password: string, coachName = "Demo Coach") {
-  return createDemoProgram(db, {
+  if (await db.get("SELECT id FROM users WHERE LOWER(email) = ?", [email.trim().toLowerCase()])) throw new Error("An account with that email already exists.");
+  const { orgId, userId } = await buildFast(db, (target) => createDemoProgram(target, {
     programName: "Demo State University (DEMO — fictional data)",
     teamName: "Demo State Baseball",
     campusZip: "78712",
     staff: [{ name: coachName, title: "Head Baseball Coach (demo)", role: "head_coach", email }],
     password,
-  });
+  }));
+  return { orgId, userId };
 }

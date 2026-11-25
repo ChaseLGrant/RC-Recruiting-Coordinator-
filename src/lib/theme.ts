@@ -20,6 +20,8 @@ export interface ThemeTokens {
   onAccent: string; // text on accent
   accentOnInk: string; // accent used as text on the dark surface (lightened until readable)
   primaryOnInk: string; // primary used as a rule/fill on the dark surface (lightened if invisible)
+  mark: string; // fill for the team monogram / action buttons on the dark surface
+  onMark: string;
 }
 
 const HEX6 = /^#[0-9a-f]{6}$/i;
@@ -98,7 +100,11 @@ export function deriveTheme(input: ThemeInput): ThemeTokens {
   let ink = normalizeHex(input.ink) ?? deriveInk(primary, accent);
   // The dark surface must actually be dark, or white header text disappears.
   if (contrast(WHITE, ink) < 7) ink = mix(ink, "#05070a", 0.6);
+  // On the dark header, a near-black primary disappears; use the secondary color instead.
+  const mark = contrast(primary, ink) >= 1.6 ? primary : contrast(accent, ink) >= 1.6 ? accent : ensureContrast(primary, ink, 1.6);
   return {
+    mark,
+    onMark: readableOn(mark),
     primary,
     onPrimary: readableOn(primary),
     primaryText: ensureContrast(primary, WHITE, 4.5),
@@ -123,6 +129,8 @@ export function themeVars(t: ThemeTokens): Record<string, string> {
     "--team-on-accent": t.onAccent,
     "--team-accent-on-ink": t.accentOnInk,
     "--team-primary-on-ink": t.primaryOnInk,
+    "--team-mark": t.mark,
+    "--team-on-mark": t.onMark,
   };
 }
 

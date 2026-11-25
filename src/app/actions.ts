@@ -50,13 +50,16 @@ function withFlash(path: string, msg: string, kind: "ok" | "err" = "ok") {
 
 export async function loginAction(fd: FormData) {
   const db = await getDb();
+  // A program's branded sign-in page (/p/<slug>) sends errors back to itself.
+  const from = str(fd, "from");
+  const errorTo = /^\/p\/[a-z0-9-]{1,60}$/.test(from) ? `${from}?error=` : "/login?error=";
   let user;
   try {
     user = await authenticate(db, str(fd, "email"), str(fd, "password"));
   } catch (e) {
-    redirect("/login?error=" + encodeURIComponent(e instanceof Error ? e.message : "Sign-in failed."));
+    redirect(errorTo + encodeURIComponent(e instanceof Error ? e.message : "Sign-in failed."));
   }
-  if (!user) redirect("/login?error=" + encodeURIComponent("Email or password is incorrect."));
+  if (!user) redirect(errorTo + encodeURIComponent("Email or password is incorrect."));
   await startSession(user.id);
   redirect("/");
 }
@@ -67,6 +70,37 @@ export async function tryDemoAction() {
     ({ userId } = await createGuestDemo(await getDb()));
   } catch (e) {
     redirect("/login?error=" + encodeURIComponent(e instanceof Error ? e.message : "Couldn't open the demo."));
+  }
+  await startSession(userId);
+  redirect("/?welcome=demo");
+}
+
+export type DemoFormState = { error?: string } | undefined;
+
+const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+
+/** "See RC for your program": a private demo in the school's colors, then straight into the board. */
+export async function createSchoolDemoAction(_prev: DemoFormState, fd: FormData): Promise<DemoFormState> {
+  let logoDataUrl: string | null = null;
+  const file = fd.get("logo");
+  if (file instanceof File && file.size > 0) {
+    if (!LOGO_TYPES.includes(file.type)) return { error: "Logo must be a PNG, JPG, WebP or SVG file." };
+    if (file.size > 500_000) return { error: "Logo must be under 500 KB." };
+    logoDataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  }
+  let userId: string;
+  try {
+    const { createSchoolDemo } = await import("@/lib/onboarding");
+    ({ userId } = await createSchoolDemo(await getDb(), {
+      school: str(fd, "school"),
+      teamName: str(fd, "teamName") || null,
+      campus: str(fd, "campus") || null,
+      primary: str(fd, "primary") || null,
+      accent: str(fd, "accent") || null,
+      logoDataUrl,
+    }));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't build the demo. Please try again." };
   }
   await startSession(userId);
   redirect("/?welcome=demo");
@@ -930,4 +964,17 @@ export async function adminBillingAction(fd: FormData) {
   await audit({ ...ctx, orgId }, "owner_billing_update", "org", orgId, { comp: plan.comp, paidThrough: plan.paidThrough, aiMonthlyLimit: plan.aiMonthlyLimit });
   revalidatePath("/admin");
   redirect(withFlash("/admin", `${target.name} updated.`));
+}
+
+export async function updateSignInLinkAction(fd: FormData) {
+  const { ctx } = await requireSession();
+  try {
+    const { setProgramSlug } = await import("@/lib/program-link");
+    await setProgramSlug(ctx, str(fd, "slug"));
+    await audit(ctx, "update_sign_in_link", "org", ctx.orgId, { slug: str(fd, "slug") });
+  } catch (e) {
+    redirect(withFlash("/settings#branding", e instanceof Error ? e.message : "Couldn't save the link.", "err"));
+  }
+  revalidatePath("/settings");
+  redirect(withFlash("/settings#branding", "Sign-in link saved."));
 }

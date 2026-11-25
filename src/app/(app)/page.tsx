@@ -39,13 +39,20 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     <div>
       <Flash flash={sp.flash} error={sp.error} />
       {sp.welcome === "demo" && org.isDemo && (
-        <div className="mb-6 border border-slate-900/10 border-t-4 border-t-[var(--team-primary)] bg-white p-5">
-          <p className="eyebrow text-slate-500">Welcome, Coach</p>
-          <h2 className="font-display text-3xl font-extrabold uppercase leading-none">Try these 3 things</h2>
-          <ol className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-            <li><a href="/discover" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">1. Find players</b>Type what you need, like &ldquo;2027 shortstops within 100 miles&rdquo;.</a></li>
-            <li><a href="/following" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">2. Open your board</b>Tap a player to see stats, sources, games, notes and contact log.</a></li>
-            <li><a href="/import" className="block h-full border border-slate-200 p-3 hover:border-[var(--team-primary)]"><b className="block">3. Bring your list</b>See how your spreadsheet or a photo of your list comes in.</a></li>
+        <div className="mb-6 grid overflow-hidden border border-slate-900/10 bg-white md:grid-cols-[1fr_2fr]">
+          <div className="bg-[var(--team-ink)] p-5 text-white sm:p-6">
+            <p className="eyebrow text-accent-on-ink">Your demo is ready</p>
+            <h2 className="font-display mt-2 text-3xl font-extrabold uppercase leading-[0.92] sm:text-4xl">{org.settings.branding.teamName ? <>The {org.settings.branding.teamName} board.</> : "Your board is ready."}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">Sample players{org.campus ? ` near ${org.campus.label.replace(/^Campus \(|\)$/g, "")}` : ""}, with a week of staff work already done. Every player is fictional.</p>
+          </div>
+          <ol className="grid divide-y divide-slate-900/10 text-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {[
+              ["01", "Find players", "Type it like you'd tell an assistant: “2027 shortstops within 100 miles.”", "/discover"],
+              ["02", "Approve the work", "New players, drafts and camp lists wait on your OK. Approve, edit or pass.", "/approvals"],
+              ["03", "Open your board", "Tap a player for sourced stats, games, notes and the staff's contact log.", "/following"],
+            ].map(([n, h, t, href]) => (
+              <li key={n}><a href={href} className="group block h-full p-5 hover:bg-slate-50"><span className="font-display text-2xl font-extrabold text-brand-text">{n}</span><b className="mt-1 block text-[15px] text-slate-900 group-hover:underline">{h}</b><span className="mt-1 block leading-relaxed text-slate-600">{t}</span></a></li>
+            ))}
           </ol>
         </div>
       )}

@@ -9,6 +9,8 @@ import { ROLE_LABEL } from "@/lib/domain/types";
 import { isOwner } from "@/lib/billing/schools";
 import { billingState } from "@/lib/billing/plan";
 import { brandingVars } from "@/lib/theme";
+import { BOOKING_URL } from "@/lib/site";
+import { GUEST_DEMO_DAYS } from "@/lib/outreach/cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -24,31 +26,41 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const team = b.teamName ?? org.name.replace(/\s*\(.*\)\s*$/, "");
   const initials = user.name.replace(/\(.*?\)/g, "").split(/\s+/).map((p) => p.replace(/[^\p{L}]/gu, "")[0] ?? "").join("").slice(0, 2).toUpperCase() || "RC";
   const vars = brandingVars(b) as CSSProperties;
+  const expires = org.isDemo && org.createdAt
+    ? new Date(Date.parse(org.createdAt) + GUEST_DEMO_DAYS() * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: org.settings.timezone || "UTC" })
+    : null;
   return (
     <div style={vars} className="team-scope min-h-screen pb-20 md:pb-0">
       {org.isDemo && (
-        <div className="bg-[var(--team-accent)] px-4 py-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-on-accent">
-          Demo<span className="hidden sm:inline"> · every player, school and number shown is fictional</span><span className="sm:hidden"> · fictional players</span>
+        <div className="bg-[#0a0b0d] text-white">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 text-[12px] sm:px-6">
+            <span className="flex items-center gap-2 font-semibold uppercase tracking-[0.14em] text-white/80">
+              <span className="rounded-[2px] bg-[var(--team-mark)] px-1.5 py-0.5 text-[10px] font-extrabold text-[var(--team-on-mark)]">Demo</span>
+              <span className="hidden sm:inline">Every player, school and number here is fictional</span><span className="sm:hidden">Fictional players</span>
+            </span>
+            {(prospect || isGuest) && expires && <span className="hidden text-white/45 lg:inline">Private to you · deletes itself {expires}</span>}
+            <span className="flex-1" />
+            {(prospect || isGuest) && (
+              <span className="flex items-center gap-4">
+                <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="hidden font-semibold text-white/70 underline decoration-white/25 underline-offset-4 hover:text-white sm:inline">Book a walkthrough</a>
+                {prospect ? (
+                  <form action={startFromPreviewAction}><button className="rounded-[3px] bg-white px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#0a0b0d] hover:bg-white/90">Set it up for real</button></form>
+                ) : (
+                  <form action={logoutAction}><input type="hidden" name="to" value="/signup" /><button className="rounded-[3px] bg-white px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#0a0b0d] hover:bg-white/90">Get RC for my program</button></form>
+                )}
+              </span>
+            )}
+          </div>
         </div>
       )}
-      {(prospect || isGuest) && (
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-[var(--team-primary)] px-4 py-2.5 text-center text-sm text-on-brand">
-          <span><b>Like it?</b> Set RC up for {prospect ? (prospect.teamName ?? prospect.branding.teamName ?? prospect.programName) : "your program"} with your real players. Free for 90 days, no card.</span>
-          {prospect ? (
-            <form action={startFromPreviewAction}><button className="rounded-[3px] bg-white px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--team-ink)] hover:bg-white/90">Set it up for real</button></form>
-          ) : (
-            <form action={logoutAction}><input type="hidden" name="to" value="/signup" /><button className="rounded-[3px] bg-white px-4 py-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--team-ink)] hover:bg-white/90">Get RC for my program</button></form>
-          )}
-        </div>
-      )}
-      <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary)] bg-[var(--team-ink)] pt-[env(safe-area-inset-top)] text-white">
+      <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary-on-ink)] bg-[var(--team-ink)] pt-[env(safe-area-inset-top)] text-white">
         <div className="mx-auto flex h-[64px] max-w-6xl items-center gap-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:h-[72px] sm:px-6">
           <Link href="/" className="flex items-center gap-3" aria-label={`${team} home`}>
             {b.logoDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoDataUrl} alt={`${team} logo`} className="h-11 w-auto max-w-[5rem] object-contain" />
             ) : (
-              <span className="font-display grid h-11 w-11 place-items-center bg-[var(--team-primary)] text-on-brand text-xl font-extrabold">{team.slice(0, 1)}</span>
+              <span className="font-display grid h-11 w-11 place-items-center bg-[var(--team-mark)] text-[var(--team-on-mark)] text-xl font-extrabold">{team.slice(0, 1)}</span>
             )}
             <span className="leading-none">
               <span className="font-display block text-[22px] font-extrabold uppercase tracking-wide">{team}</span>
@@ -57,7 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex-1" />
           <NavLinks pending={pending} />
-          <Link href="/players/new" aria-label="Add a player" title="Add a player" className="grid h-9 w-9 place-items-center bg-[var(--team-primary)] text-on-brand text-xl font-bold leading-none hover:brightness-110">+</Link>
+          <Link href="/players/new" aria-label="Add a player" title="Add a player" className="grid h-9 w-9 place-items-center bg-[var(--team-mark)] text-[var(--team-on-mark)] text-xl font-bold leading-none hover:brightness-110">+</Link>
           <details className="relative">
             <summary className="grid h-9 w-9 place-items-center border border-white/25 text-xs font-bold tracking-wider hover:bg-white/10" aria-label="Account menu">{initials}</summary>
             <div className="absolute right-0 z-50 mt-2 w-64 border border-slate-200 bg-white text-sm text-slate-800 shadow-xl">

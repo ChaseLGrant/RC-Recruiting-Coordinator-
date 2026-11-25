@@ -5,11 +5,24 @@ import { getDb } from "@/lib/db";
 import { getProspectBySlug, recordVisit } from "@/lib/outreach/prospects";
 import { openPreviewAction } from "@/app/actions";
 import { Flash } from "@/components/ui";
+import { brandingVars } from "@/lib/theme";
+import { getOrgBySlug } from "@/lib/program-link";
+import { currentUser } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { AuthShell } from "@/components/auth-shell";
+import { SignInForm } from "@/components/site/sign-in-form";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const p = await getProspectBySlug(await getDb(), (await params).slug);
+  const db = await getDb();
+  const slug = (await params).slug;
+  const org = await getOrgBySlug(db, slug);
+  if (org) {
+    const team = org.settings.branding.teamName ?? org.name;
+    return { title: `${team} · Staff sign-in`, robots: { index: false, follow: false } };
+  }
+  const p = await getProspectBySlug(db, slug);
   const team = p ? (p.teamName ?? p.branding.teamName ?? p.programName) : "RC";
   return { title: `${team} · Recruiting Coordinator`, description: `A recruiting assistant set up for ${team}. Tap to try it. No sign-up.`, robots: { index: false, follow: false } };
 }
@@ -19,13 +32,26 @@ export default async function PreviewLanding({ params, searchParams }: { params:
   const { slug } = await params;
   const sp = await searchParams;
   const db = await getDb();
+  // A program's own branded staff sign-in page.
+  const program = await getOrgBySlug(db, slug);
+  if (program) {
+    if (await currentUser()) redirect("/");
+    const pb = program.settings.branding;
+    const team = pb.teamName ?? program.settings.programDisplayName ?? program.name;
+    return (
+      <AuthShell program={{ team, logo: pb.logoDataUrl, vars: brandingVars(pb) as CSSProperties }}>
+        <SignInForm from={`/p/${program.slug}`} error={sp.error} branded />
+        <p className="mt-5 text-center text-xs text-white/45">Staff accounts are set up by your head coach in Settings.</p>
+      </AuthShell>
+    );
+  }
   const p = await getProspectBySlug(db, slug);
   if (!p) notFound();
   await recordVisit(db, p.id);
   const b = p.branding;
   const team = p.teamName ?? b.teamName ?? p.programName;
   const first = (p.coachName ?? "").replace(/^(coach|dr\.?|mr\.?)\s+/i, "").split(/\s+/)[0];
-  const vars = { "--team-primary": b.primary, "--team-ink": b.ink, "--team-accent": b.accent } as CSSProperties;
+  const vars = brandingVars(b) as CSSProperties;
   const points: Array<[string, string]> = [
     ["Type what you need", "“2027 lefty pitchers within 200 miles, 6'1\" and up.” RC pulls up the players who fit."],
     ["Stats update themselves", "Season stats and schedules from public pages land on each player's profile. No more checking MaxPreps."],
