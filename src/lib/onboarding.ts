@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 
 import { Db, newId, nowIso } from "./db";
 import { addStaffProfile, createUser, setSharedLogin } from "./auth";
-import { geocode } from "./domain/geo";
+import { geocode, zipFor } from "./domain/geo";
 import { defaultCriteria } from "./domain/criteria";
 import { PROVIDERS } from "./providers/registry";
 import { addNote, createMission, createSource, listUsers, saveProfile, sanitizeBranding, updateOrgSettings, type Branding, type Ctx } from "./repo";
@@ -14,6 +14,8 @@ import { logContact } from "./repo/contacts";
 import type { Role } from "./domain/types";
 import { createCamp } from "./repo/approvals";
 import { runMission } from "./jobs/runner";
+import { buildFast } from "./demo/fast-build";
+import { deriveTheme, normalizeHex } from "./theme";
 
 export async function createProgram(
   db: Db,
@@ -169,7 +171,7 @@ export async function createGuestDemo(db: Db, look: DemoLook = {}): Promise<{ or
   const recent = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM users WHERE email LIKE ? AND role = 'head_coach' AND created_at >= ?", [`%@${GUEST_EMAIL_DOMAIN}`, since]);
   if (Number(recent?.n ?? 0) >= GUEST_DEMOS_PER_HOUR()) throw new Error("Lots of people are trying RC right now. Try again in a few minutes.");
   const tag = randomBytes(6).toString("hex");
-  return createDemoProgram(db, {
+  const { mode: _mode, ...ids } = await buildFast(db, (target) => createDemoProgram(target, {
     programName: look.programName ? `${look.programName} (DEMO — fictional players)` : "Demo State University (DEMO — fictional data)",
     teamName: look.teamName ?? (look.programName ? null : "Demo State Baseball") ?? undefined,
     campusZip: look.campusZip ?? "78712",
@@ -180,7 +182,45 @@ export async function createGuestDemo(db: Db, look: DemoLook = {}): Promise<{ or
     ],
     password: randomBytes(24).toString("base64url"), // never shown; the guest is signed in directly
     seedActivity: true,
-  });
+  }));
+  void _mode;
+  return ids;
+}
+
+export interface SchoolDemoInput {
+  school: string;
+  teamName?: string | null;
+  campus?: string | null; // ZIP or "City, ST"
+  primary?: string | null;
+  accent?: string | null;
+  logoDataUrl?: string | null;
+}
+
+export const DEFAULT_DEMO_CAMPUS = "78712";
+
+/** Checks a coach's "See RC for your program" form and turns it into a demo look. Throws a coach-readable message. */
+export function schoolDemoLook(input: SchoolDemoInput): DemoLook {
+  const school = String(input.school ?? "").replace(/\s+/g, " ").trim();
+  if (school.length < 2) throw new Error("Enter your school or program name.");
+  if (school.length > 60) throw new Error("Keep the school name under 60 characters.");
+  const campusRaw = String(input.campus ?? "").trim();
+  let campusZip = DEFAULT_DEMO_CAMPUS;
+  if (campusRaw) {
+    const z = zipFor(campusRaw);
+    if (!z) throw new Error(`We couldn't find "${campusRaw}". Use your campus ZIP code or "City, ST".`);
+    campusZip = z;
+  }
+  const primary = normalizeHex(input.primary) ?? "#1f3a68";
+  const accent = normalizeHex(input.accent) ?? "#b8925a";
+  const t = deriveTheme({ primary, accent });
+  const teamName = (input.teamName ?? "").trim().slice(0, 40) || (/\b(baseball)\b/i.test(school) ? school : `${school} Baseball`);
+  const branding = sanitizeBranding({ teamName, primary: t.primary, accent: t.accent, ink: t.ink, logoDataUrl: input.logoDataUrl ?? null });
+  return { programName: school, teamName, campusZip, branding };
+}
+
+/** "See RC for your program": a private demo in the school's colors (and logo, if uploaded). */
+export async function createSchoolDemo(db: Db, input: SchoolDemoInput): Promise<{ orgId: string; userId: string }> {
+  return createGuestDemo(db, schoolDemoLook(input));
 }
 
 /** Generic demo used by the sign-up page. */

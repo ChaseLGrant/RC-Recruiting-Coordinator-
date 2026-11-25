@@ -36,7 +36,7 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
         <span className="ml-auto font-normal">{timeAgo(a.createdAt)}</span>
       </div>
       <h3 className="text-[16px] font-bold leading-snug text-slate-900">
-        {a.athleteId ? <Link href={`/athletes/${a.athleteId}`} className="hover:text-brand-700">{a.title}</Link> : a.title}
+        {a.athleteId ? <Link href={`/athletes/${a.athleteId}`} className="hover:text-brand-text">{a.title}</Link> : a.title}
       </h3>
       <p className="mt-1 text-sm leading-relaxed text-slate-600">{a.summary}</p>
       {allowed ? (
@@ -54,7 +54,7 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
                       <div className="eyebrow text-slate-500">{UPDATE_LABEL[u.type] ?? u.type}</div>
                       <div className="text-sm font-semibold text-slate-900">{u.summary}</div>
                       <blockquote className="mt-1 border-l-2 border-slate-200 pl-2 text-xs italic text-slate-600">&ldquo;{u.quote}&rdquo;</blockquote>
-                      <a href={u.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-xs text-brand-700 underline">{u.sourceTitle || u.sourceUrl}</a>
+                      <a href={u.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-xs text-brand-text underline">{u.sourceTitle || u.sourceUrl}</a>
                     </div>
                   </li>
                 ))}
@@ -74,7 +74,7 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
                         <span className="eyebrow text-slate-700">{c.site}</span>
                         <span className="text-[11px] text-slate-400">{c.kind === "stats" ? "Stats & schedule" : c.kind === "film" ? "Film" : "Social"}</span>
                       </div>
-                      <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-700 underline">{c.title || c.url}</a>
+                      <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-text underline">{c.title || c.url}</a>
                       <p className="text-xs text-slate-500">Matched: {c.reasons}</p>
                     </div>
                   </li>
@@ -85,7 +85,7 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
           )}
           {message && (
             <details className="mb-3 rounded-[4px] bg-slate-50 p-3">
-              <summary className="text-sm font-medium text-brand-700">Read or edit the message to {message.to_email ?? "(no email on file)"}</summary>
+              <summary className="text-sm font-medium text-brand-text">Read or edit the message to {message.to_email ?? "(no email on file)"}</summary>
               <label className="mt-3 block text-xs font-medium text-slate-500" htmlFor={`s-${a.id}`}>Subject</label>
               <input id={`s-${a.id}`} name="subject" defaultValue={message.subject} className="mt-1 w-full rounded-[4px] border border-slate-200 bg-white px-3 py-2 text-sm" />
               <label className="mt-2 block text-xs font-medium text-slate-500" htmlFor={`b-${a.id}`}>Message</label>
@@ -93,7 +93,7 @@ export function ApprovalCard({ a, message, returnTo = "/", canDecide, canDecideC
             </details>
           )}
           <div className="flex flex-wrap gap-2">
-            <button name="decision" value="approve" className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">{dup ? "Merge records" : c.yes}</button>
+            <button name="decision" value="approve" className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-on-brand hover:bg-brand-700">{dup ? "Merge records" : c.yes}</button>
             <button name="decision" value="reject" className="rounded-[3px] px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50">{dup ? "Keep separate" : c.no}</button>
             {a.status !== "saved" && <button name="decision" value="save" className="rounded-[3px] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-slate-500 hover:bg-slate-100">Later</button>}
           </div>

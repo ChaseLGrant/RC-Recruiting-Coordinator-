@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <button className="w-full rounded-[3px] border-2 border-slate-900 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-slate-900 hover:bg-slate-900 hover:text-white">Try RC now · no sign-up</button>
         <p className="mt-2 text-center text-xs text-slate-500">Opens your own demo board with sample players. Nothing to fill in.</p>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">New program? <Link className="text-brand-600 underline" href="/signup">Create an account</Link></p>
+      <p className="mt-4 text-center text-sm text-slate-600">New program? <Link className="text-brand-text underline" href="/signup">Create an account</Link></p>
     </AuthShell>
   );
 }

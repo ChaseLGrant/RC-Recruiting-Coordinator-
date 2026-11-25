@@ -49,7 +49,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
                 <li key={p.id} className="rounded-[4px] border border-slate-200 p-3">
                   <div className="flex items-center justify-between gap-2"><b className="text-sm">{p.name}</b>
                     <div className="flex gap-2">
-                      <Link href={`/discover?c=${encodeCriteria(p.criteria)}`} className="text-xs text-brand-600 hover:underline">Open in Discover</Link>
+                      <Link href={`/discover?c=${encodeCriteria(p.criteria)}`} className="text-xs text-brand-text hover:underline">Open in Discover</Link>
                       <form action={deleteProfileAction}><input type="hidden" name="profileId" value={p.id} /><button className="text-xs text-slate-400 hover:text-rose-600">Delete</button></form>
                     </div>
                   </div>

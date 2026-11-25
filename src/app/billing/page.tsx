@@ -6,6 +6,7 @@ import { getStripe, priceFor } from "@/lib/billing/stripe";
 import { can } from "@/lib/domain/permissions";
 import { billingPortalAction, logoutAction, startCheckoutAction } from "@/app/actions";
 import { Flash } from "@/components/ui";
+import { brandingVars } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const p = org.settings.plan;
   const b = org.settings.branding;
   const team = b.teamName ?? org.name;
-  const vars = { "--team-primary": b.primary, "--team-ink": b.ink, "--team-accent": b.accent } as CSSProperties;
+  const vars = brandingVars(b) as CSSProperties;
   const isAdmin = can(user.role, "manage_settings");
   const [monthly, yearly] = await Promise.all([priceLabel("month"), priceLabel("year")]);
   const stats = await ctx.db.get<{ players: number; contacts: number; checks: number; updates: number }>(
@@ -91,7 +92,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         ) : subscribed ? (
           isAdmin ? (
             <form action={billingPortalAction} className="mt-6">
-              <button className="rounded-[3px] bg-brand-600 px-5 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">Update card, switch plan or cancel</button>
+              <button className="rounded-[3px] bg-brand-600 px-5 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-on-brand hover:bg-brand-700">Update card, switch plan or cancel</button>
               <p className="mt-2 text-xs text-slate-500">Opens Stripe&apos;s secure billing page. RC never sees your card number.</p>
             </form>
           ) : (
@@ -110,7 +111,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                   <div className="eyebrow text-slate-500">{i === "year" ? "Yearly" : "Monthly"}</div>
                   <div className="font-display mt-1 text-4xl font-extrabold">{(i === "year" ? yearly : monthly) ?? (i === "year" ? "Yearly plan" : "Monthly plan")}</div>
                   <p className="mt-1 text-xs text-slate-500">{i === "year" ? "Best for athletic departments paying once a year." : "Pay month to month."}</p>
-                  <button className="mt-4 w-full rounded-[3px] bg-brand-600 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">{p.trialUsed ? (state.trialing ? "Add card · keep it running" : "Subscribe") : "Start free trial"}</button>
+                  <button className="mt-4 w-full rounded-[3px] bg-brand-600 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-on-brand hover:bg-brand-700">{p.trialUsed ? (state.trialing ? "Add card · keep it running" : "Subscribe") : "Start free trial"}</button>
                 </form>
               ))}
             </div>

@@ -18,10 +18,29 @@
 }
 
 :root {
-  /* Default RC colors; each program overrides these with its own. */
+  /* Default RC colors; each program overrides these with its own
+     (derived and contrast-checked in src/lib/theme.ts). */
   --team-primary: #1f3a68;
+  --team-on-primary: #ffffff;
+  --team-primary-text: #1f3a68;
   --team-ink: #0f1722;
+  --team-on-ink: #ffffff;
   --team-accent: #b8925a;
+  --team-on-accent: #0b0d10;
+  --team-accent-on-ink: #c9a46a;
+  --team-primary-on-ink: #3d5f99;
+}
+
+/* Theme tokens read straight from the program's variables, so they follow
+   whichever .team-scope they're inside. */
+@theme inline {
+  --color-on-brand: var(--team-on-primary);
+  --color-brand-text: var(--team-primary-text);
+  --color-team-ink: var(--team-ink);
+  --color-team-accent: var(--team-accent);
+  --color-on-accent: var(--team-on-accent);
+  --color-accent-on-ink: var(--team-accent-on-ink);
+  --color-primary-on-ink: var(--team-primary-on-ink);
 }
 
 /* Re-derive the brand scale inside each program's scope so its colors win. */

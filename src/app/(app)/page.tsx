@@ -90,7 +90,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <section className="lg:col-span-3">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-display text-2xl font-extrabold uppercase">Needs your OK</h2>
-            {queue.length > 4 && <Link href="/approvals" className="text-sm font-medium text-brand-700 hover:underline">See all {queue.length}</Link>}
+            {queue.length > 4 && <Link href="/approvals" className="text-sm font-medium text-brand-text hover:underline">See all {queue.length}</Link>}
           </div>
           {queue.length === 0 ? (
             <Empty>You&apos;re all caught up. New players and drafts RC prepares will show up here.</Empty>
@@ -112,7 +112,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   {brief.tasks.slice(0, 5).map((t) => (
                     <li key={t.id} className="flex items-start gap-3 p-3 text-sm">
                       <form action={completeTaskAction}><input type="hidden" name="taskId" value={t.id} /><button title="Mark done" aria-label="Mark done" className="mt-0.5 h-5 w-5 rounded-full ring-2 ring-slate-300 hover:bg-emerald-100 hover:ring-emerald-500" /></form>
-                      {t.athlete_id ? <Link href={`/athletes/${t.athlete_id}`} className="leading-snug text-slate-700 hover:text-brand-700">{t.title.replace("Scouting opportunity: ", "")}</Link> : <span className="leading-snug">{t.title}</span>}
+                      {t.athlete_id ? <Link href={`/athletes/${t.athlete_id}`} className="leading-snug text-slate-700 hover:text-brand-text">{t.title.replace("Scouting opportunity: ", "")}</Link> : <span className="leading-snug">{t.title}</span>}
                     </li>
                   ))}
                 </ul>
@@ -123,7 +123,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <section>
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="font-display text-2xl font-extrabold uppercase">What RC did</h2>
-              <form action={markBriefReviewedAction}><button className="text-sm font-medium text-brand-700 hover:underline">Mark as read</button></form>
+              <form action={markBriefReviewedAction}><button className="text-sm font-medium text-brand-text hover:underline">Mark as read</button></form>
             </div>
             <div className="border border-slate-900/10 bg-white p-4">
               <p className="text-sm text-slate-600">
@@ -133,7 +133,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <ul className="mt-3 space-y-2.5 border-t border-slate-100 pt-3 text-sm">
                   {highlights.map((e) => (
                     <li key={e.id} className="leading-snug">
-                      {e.athlete_id ? <Link href={`/athletes/${e.athlete_id}`} className="text-slate-700 hover:text-brand-700">{e.message}</Link> : <span className="text-slate-700">{e.message}</span>}
+                      {e.athlete_id ? <Link href={`/athletes/${e.athlete_id}`} className="text-slate-700 hover:text-brand-text">{e.message}</Link> : <span className="text-slate-700">{e.message}</span>}
                       <span className="block text-xs text-slate-400">{timeAgo(e.created_at)}</span>
                     </li>
                   ))}

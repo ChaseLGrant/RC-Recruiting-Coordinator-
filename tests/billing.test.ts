@@ -14,7 +14,7 @@ const ENV = { STRIPE_SECRET_KEY: "sk_test_x", STRIPE_PRICE_MONTHLY: "price_m" };
 const day = 86_400_000;
 
 function orgWith(plan: Partial<Org["settings"]["plan"]>, isDemo = false): Org {
-  return { id: "o", name: "U", sport: "baseball", campus: null, isDemo, settings: { plan: { status: "none", trialEndsAt: null, currentPeriodEnd: null, paidThrough: null, interval: null, cancelAtPeriodEnd: false, trialUsed: false, stripeCustomerId: null, stripeSubscriptionId: null, stripeUpdatedAt: 0, comp: false, aiMonthlyLimit: 400, ...plan } } as Org["settings"] };
+  return { id: "o", name: "U", sport: "baseball", campus: null, isDemo, slug: null, createdAt: "", settings: { plan: { status: "none", trialEndsAt: null, currentPeriodEnd: null, paidThrough: null, interval: null, cancelAtPeriodEnd: false, trialUsed: false, stripeCustomerId: null, stripeSubscriptionId: null, stripeUpdatedAt: 0, comp: false, aiMonthlyLimit: 400, ...plan } } as Org["settings"] };
 }
 
 describe("subscription rules", () => {

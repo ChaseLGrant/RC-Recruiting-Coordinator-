@@ -45,7 +45,7 @@ export function PlayerCard({
         <Avatar first={a.firstName} last={a.lastName} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={`/athletes/${a.id}`} className="font-display text-2xl font-extrabold uppercase leading-none text-slate-900 after:absolute after:inset-0 hover:text-brand-700">{a.firstName} {a.lastName}</Link>
+            <Link href={`/athletes/${a.id}`} className="font-display text-2xl font-extrabold uppercase leading-none text-slate-900 after:absolute after:inset-0 hover:text-brand-text">{a.firstName} {a.lastName}</Link>
             {a.isDemo && <DemoTag />}
           </div>
           <p className="mt-1 truncate text-[13px] text-slate-500">
@@ -78,7 +78,7 @@ export function PlayerCard({
           <input type="hidden" name="athleteId" value={a.id} />
           <input type="hidden" name="follow" value={following ? "0" : "1"} />
           <input type="hidden" name="returnTo" value={returnTo} />
-          <button className={`rounded-[3px] px-3.5 py-2 text-[12px] font-bold uppercase tracking-[0.06em] transition ${following ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "bg-brand-600 text-white hover:bg-brand-700"}`}>
+          <button className={`rounded-[3px] px-3.5 py-2 text-[12px] font-bold uppercase tracking-[0.06em] transition ${following ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "bg-brand-600 text-on-brand hover:bg-brand-700"}`}>
             {following ? "✓ In My Players" : "+ Add to My Players"}
           </button>
         </form>

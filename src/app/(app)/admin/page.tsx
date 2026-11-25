@@ -34,7 +34,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
-      <p className="mb-4"><a href="/admin/outreach" className="inline-flex min-h-10 items-center rounded-[3px] bg-brand-600 px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">Outreach: schools, demo links & who&apos;s interested →</a></p>
+      <p className="mb-4"><a href="/admin/outreach" className="inline-flex min-h-10 items-center rounded-[3px] bg-brand-600 px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] text-on-brand hover:bg-brand-700">Outreach: schools, demo links & who&apos;s interested →</a></p>
       <PageHeader title="RC owner" subtitle={`${rows.length} programs · ${paying} paying · ${trials} in trial · about $${aiDollars.toFixed(2)} AI usage this month (estimate)${billingEnforced() ? "" : " · Stripe not connected yet (everything is open)"}`} />
 
       <Card title="Add a school" className="mb-6">
@@ -64,7 +64,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <Badge tone={state.active ? (state.reason === "trialing" ? "blue" : "green") : "amber"}>{state.message}</Badge>
                 <div className="mt-1 text-xs text-slate-500">AI: {n?.checks ?? 0} checks this month · ${(Number(n?.cents ?? 0) / 100).toFixed(2)}</div>
               </div>
-              <form action={adminNewInviteAction}><input type="hidden" name="orgId" value={org.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">New invite link</button></form>
+              <form action={adminNewInviteAction}><input type="hidden" name="orgId" value={org.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-text hover:underline">New invite link</button></form>
             </div>
             <form action={adminBillingAction} className="mt-3 flex flex-wrap items-end gap-4 border-t border-slate-100 pt-3 text-sm">
               <input type="hidden" name="orgId" value={org.id} />

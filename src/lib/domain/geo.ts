@@ -108,3 +108,16 @@ export function locateAthlete(a: {
   if (a.city && a.state) return geocodeCity(a.city, a.state);
   return null;
 }
+
+/** A real US ZIP for "92069", "San Marcos, CA" or "San Marcos, California" (null if not found). */
+export function zipFor(input: string): string | null {
+  const s = input.trim();
+  const zip = s.match(/\b(\d{5})(?:-\d{4})?\b/);
+  if (zip) return geocodeZip(zip[1]) ? zip[1] : null;
+  const cityState = s.match(/^(.+?)[,\s]+([A-Za-z]{2}|[A-Za-z ]{4,})$/);
+  if (!cityState) return null;
+  const st = normalizeState(cityState[2]);
+  if (!st) return null;
+  const hits = zipcodes.lookupByName(cityState[1].replace(/,$/, "").trim(), st);
+  return hits && hits.length ? String(hits.map((h) => h.zip).sort()[0]) : null;
+}

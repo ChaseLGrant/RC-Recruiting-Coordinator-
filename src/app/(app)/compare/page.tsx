@@ -27,7 +27,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             {keys.map((k) => (
               <tr key={k}><td className="px-3 py-2 font-medium text-slate-600">{METRICS[k].label}</td>{list.map((e) => <td key={e.athlete.id} className="px-3 py-2"><MetricValue m={e.metrics.get(k)} /></td>)}</tr>
             ))}
-            <tr><td className="px-3 py-2 font-medium text-slate-600">Film</td>{list.map((e) => <td key={e.athlete.id} className="px-3 py-2">{e.film.length ? e.film.map((f) => <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer" className="block text-brand-600 underline">{f.title ?? "Film"} ↗</a>) : <span className="text-slate-400">none</span>}</td>)}</tr>
+            <tr><td className="px-3 py-2 font-medium text-slate-600">Film</td>{list.map((e) => <td key={e.athlete.id} className="px-3 py-2">{e.film.length ? e.film.map((f) => <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer" className="block text-brand-text underline">{f.title ?? "Film"} ↗</a>) : <span className="text-slate-400">none</span>}</td>)}</tr>
             <Row label="Upcoming games" vals={list.map((e) => String(e.games.filter((g) => g.starts_at > new Date().toISOString()).length))} />
             <Row label="Missing info" vals={list.map((e) => e.missing.length ? e.missing.join(", ").replace(/_/g, " ") : "none")} />
           </tbody>

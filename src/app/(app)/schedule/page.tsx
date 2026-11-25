@@ -36,8 +36,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader title="Schedule" subtitle={`Upcoming games for your recruits, kept current from their linked pages. Times in ${tzAbbrev(tz)}. A team game doesn't guarantee the player is in the lineup.`} />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        <Link href={`/schedule?scope=following&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "following" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following</Link>
-        <Link href={`/schedule?scope=matched&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "matched" ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}>Following + mission matches</Link>
+        <Link href={`/schedule?scope=following&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "following" ? "bg-brand-600 text-on-brand" : "bg-white ring-1 ring-slate-200"}`}>Following</Link>
+        <Link href={`/schedule?scope=matched&days=${days}`} className={`rounded-[3px] px-3 py-1 ${scope === "matched" ? "bg-brand-600 text-on-brand" : "bg-white ring-1 ring-slate-200"}`}>Following + mission matches</Link>
         <span className="mx-2 text-slate-300">|</span>
         {[7, 21, 60].map((d) => <Link key={d} href={`/schedule?scope=${scope}&days=${d}`} className={`rounded-[3px] px-3 py-1 ${days === d ? "bg-slate-800 text-white" : "bg-white ring-1 ring-slate-200"}`}>Next {d} days</Link>)}
       </div>
@@ -53,7 +53,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                     <li key={g.id} className="flex gap-4 px-4 py-3">
                       <div className="w-16 shrink-0 pt-0.5 text-sm font-bold">{formatInZone(g.starts_at, tz, { hour: "numeric", minute: "2-digit" })}</div>
                       <div className="min-w-0 flex-1">
-                        <Link href={`/athletes/${g.athlete_id}`} className="font-semibold hover:text-brand-700">{g.first_name} {g.last_name}</Link>{g.is_demo ? <> <DemoTag /></> : null}
+                        <Link href={`/athletes/${g.athlete_id}`} className="font-semibold hover:text-brand-text">{g.first_name} {g.last_name}</Link>{g.is_demo ? <> <DemoTag /></> : null}
                         <span className="text-sm text-slate-500"> · {g.primary_position} · {g.grad_year}</span>
                         <div className="text-sm text-slate-700">{g.team_name ?? "Team"} vs {g.opponent ?? "TBD"}</div>
                         <div className="text-xs text-slate-500">{[g.venue, g.city && `${g.city}, ${g.state}`, dist != null && `${Math.round(dist)} mi from campus`].filter(Boolean).join(" · ")}</div>
@@ -61,7 +61,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                           {g.status === "changed" && <Badge tone="amber">Moved from {fmtDate(g.previous_starts_at, { month: "short", day: "numeric" })}</Badge>}
                           {g.status === "cancelled" && <Badge tone="red">Canceled</Badge>}
                           {!g.participation_confirmed && <Badge>Playing not confirmed</Badge>}
-                          {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700 underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
+                          {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-text underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
                         </div>
                       </div>
                     </li>

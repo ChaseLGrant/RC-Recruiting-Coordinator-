@@ -42,7 +42,7 @@ export default async function PreviewLanding({ params, searchParams }: { params:
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-auto max-w-[8rem] object-contain sm:h-20 sm:max-w-[10rem]" />
             ) : (
-              <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-4xl font-extrabold sm:h-20 sm:w-20">{team[0]}</span>
+              <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-on-brand text-4xl font-extrabold sm:h-20 sm:w-20">{team[0]}</span>
             )}
             <div>
               <p className="eyebrow text-white/60">Recruiting Coordinator</p>
@@ -50,12 +50,12 @@ export default async function PreviewLanding({ params, searchParams }: { params:
             </div>
           </div>
           <h1 className="font-display mt-8 text-5xl font-extrabold uppercase leading-[0.9] sm:text-7xl">
-            {first ? <>Coach {first},<br /></> : null}your recruiting staff<br /><span className="text-[var(--team-accent)]">is ready.</span>
+            {first ? <>Coach {first},<br /></> : null}your recruiting staff<br /><span className="text-accent-on-ink">is ready.</span>
           </h1>
           <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-white/75">We set RC up in {team} colors with sample players near your campus, so you can see exactly how it works for your program. Takes 2 minutes. No sign-up, no card.</p>
           <form action={openPreviewAction} className="mt-7">
             <input type="hidden" name="slug" value={slug} />
-            <button className="w-full rounded-[3px] bg-[var(--team-primary)] px-8 py-4 text-[15px] font-bold uppercase tracking-[0.08em] text-white shadow-lg hover:brightness-110 sm:w-auto">Open my demo</button>
+            <button className="w-full rounded-[3px] bg-[var(--team-primary)] px-8 py-4 text-[15px] font-bold uppercase tracking-[0.08em] text-on-brand shadow-lg hover:brightness-110 sm:w-auto">Open my demo</button>
           </form>
           <div className="mt-3"><Flash error={sp.error} /></div>
         </div>

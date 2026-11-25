@@ -52,8 +52,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
           <div className="mx-auto mt-5 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Looking for</span>
-              {chips.map((d) => <span key={d} className="rounded-[3px] bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">{d}</span>)}
-              <a href="#filters" className="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-brand-700">Adjust</a>
+              {chips.map((d) => <span key={d} className="rounded-[3px] bg-brand-50 px-3 py-1 text-xs font-medium text-brand-text">{d}</span>)}
+              <a href="#filters" className="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-brand-text">Adjust</a>
             </div>
             {parsed && parsed.warnings.length > 0 && (
               <div className="mt-3 rounded-[4px] bg-amber-50 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">{parsed.warnings.join(" ")}</div>
@@ -123,7 +123,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       )}
 
       <details id="filters" className="mt-8 rounded-[4px] bg-white ring-1 ring-slate-900/5" open={!criteria ? false : undefined}>
-        <summary className="flex items-center justify-between px-5 py-4 text-[15px] font-semibold">Adjust standards precisely <span className="text-sm font-normal text-brand-700">Open</span></summary>
+        <summary className="flex items-center justify-between px-5 py-4 text-[15px] font-semibold">Adjust standards precisely <span className="text-sm font-normal text-brand-text">Open</span></summary>
         <CriteriaEditor criteria={criteria} campusLabel={org.campus?.label ?? null} />
       </details>
     </div>

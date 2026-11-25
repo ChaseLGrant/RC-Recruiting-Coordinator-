@@ -23,7 +23,7 @@ export function SearchBox({ defaultValue = "", size = "lg", autoFocus = false }:
         }}
         className={`min-w-0 flex-1 resize-none bg-transparent px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none ${big ? "text-lg" : "text-[15px]"}`}
       />
-      <button className={`w-full shrink-0 rounded-[3px] bg-brand-600 font-bold uppercase tracking-[0.08em] text-white transition hover:bg-brand-700 sm:w-auto ${big ? "px-7 py-3.5 text-sm" : "px-5 py-2.5 text-xs"}`}>
+      <button className={`w-full shrink-0 rounded-[3px] bg-brand-600 font-bold uppercase tracking-[0.08em] text-on-brand transition hover:bg-brand-700 sm:w-auto ${big ? "px-7 py-3.5 text-sm" : "px-5 py-2.5 text-xs"}`}>
         Find players
       </button>
     </form>

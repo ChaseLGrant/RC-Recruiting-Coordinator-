@@ -65,8 +65,8 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
             </p>
             <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
               {a.commitmentStatus === "unknown" ? <Badge>Commitment unknown</Badge> : a.commitmentStatus === "committed" ? <Badge tone="red">Committed</Badge> : <Badge tone="green">Uncommitted{a.commitmentVerified ? " · confirmed" : " · not confirmed"}</Badge>}
-              {ev.film.length > 0 && <a href="#film" className="font-medium text-brand-700 hover:underline">Watch film ({ev.film.length})</a>}
-              {upcoming.length > 0 && <a href="#games" className="font-medium text-brand-700 hover:underline">Next game {fmtDate(upcoming[0].starts_at, { month: "short", day: "numeric" })}</a>}
+              {ev.film.length > 0 && <a href="#film" className="font-medium text-brand-text hover:underline">Watch film ({ev.film.length})</a>}
+              {upcoming.length > 0 && <a href="#games" className="font-medium text-brand-text hover:underline">Next game {fmtDate(upcoming[0].starts_at, { month: "short", day: "numeric" })}</a>}
             </p>
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -110,7 +110,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
         </div>
         {(a.phone || a.email || a.xHandle) && !a.optedOut && (
           <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-            {a.phone && <a href={`tel:${a.phone.replace(/\D/g, "")}`} className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-white">Call</a>}
+            {a.phone && <a href={`tel:${a.phone.replace(/\D/g, "")}`} className="rounded-[3px] bg-brand-600 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-on-brand">Call</a>}
             {a.phone && <a href={`sms:${a.phone.replace(/\D/g, "")}`} className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em]">Text</a>}
             {a.email && <a href={`mailto:${a.email}`} className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.06em]">Email</a>}
             {a.xHandle && <a href={`https://x.com/${a.xHandle}`} target="_blank" rel="noopener noreferrer" className="rounded-[3px] border border-slate-300 px-4 py-2 text-[12px] font-bold tracking-[0.04em]">@{a.xHandle} on X</a>}
@@ -178,7 +178,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
-          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{!agentReady ? "AI not connected" : access.canRun ? "Update with AI now" : "AI paused"}</button></form>}>
+          <Card title="Keep him up to date" id="research" action={<form action={researchNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-text hover:underline">{!agentReady ? "AI not connected" : access.canRun ? "Update with AI now" : "AI paused"}</button></form>}>
             {pendingUpdates.length > 0 ? (
               <div className="space-y-3">{pendingUpdates.map((ap) => <ApprovalCard key={ap.id} a={ap} returnTo={`${here}#research`} canDecide={can(user.role, "decide_approvals")} canDecideCompliance={can(user.role, "decide_compliance")} />)}</div>
             ) : (
@@ -187,10 +187,10 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                 {lastResearch && access.automatic && ` RC checks again every ${org.settings.agent.everyDays} days.`}
               </p>
             )}
-            {agentReady && !access.canRun && <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">{access.message} <a href="/billing" className="font-semibold text-brand-700 underline">Billing</a></p>}
+            {agentReady && !access.canRun && <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">{access.message} <a href="/billing" className="font-semibold text-brand-text underline">Billing</a></p>}
           </Card>
 
-          <Card title="Pages & social" id="pages" action={<form action={findPagesAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">{searchReady ? "Find his pages" : "Search not connected"}</button></form>}>
+          <Card title="Pages & social" id="pages" action={<form action={findPagesAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-text hover:underline">{searchReady ? "Find his pages" : "Search not connected"}</button></form>}>
             {links.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2">
                 {links.map((l) => (
@@ -214,7 +214,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                       <input type="checkbox" name="accept" value={c.id} defaultChecked className="mt-1 h-5 w-5 shrink-0 accent-[var(--team-primary)]" aria-label={`Keep ${c.site}`} />
                       <div className="min-w-0 flex-1">
                         <span className="eyebrow text-slate-700">{c.site}</span> <span className="text-[11px] text-slate-400">{c.kind === "stats" ? "Stats & schedule" : c.kind === "film" ? "Film" : "Social"}</span>
-                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-700 underline">{c.title || c.url}</a>
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-brand-text underline">{c.title || c.url}</a>
                         <p className="text-xs text-slate-500">Matched: {c.reasons}</p>
                       </div>
                     </li>
@@ -230,7 +230,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
             ) : null}
           </Card>
 
-          <Card title="Season stats" id="season" action={tracked.length > 0 ? <form action={checkPagesNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:underline">Check now</button></form> : undefined}>
+          <Card title="Season stats" id="season" action={tracked.length > 0 ? <form action={checkPagesNowAction}><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs font-bold uppercase tracking-wider text-brand-text hover:underline">Check now</button></form> : undefined}>
             {seasonKeys.length > 0 ? (
               <div className="mb-4 grid grid-cols-3 border-l border-t border-slate-900/10 sm:grid-cols-4">
                 {seasonKeys.map((k) => (
@@ -249,7 +249,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                   <li key={t.id} className="flex flex-wrap items-center gap-2">
                     <Badge tone={t.status === "ok" ? "green" : t.status === "pending" ? "slate" : "amber"}>{t.site}</Badge>
                     <span className="min-w-0 flex-1 text-xs text-slate-500">{t.status === "ok" ? `${t.status_detail ?? "Updating"} · checked ${timeAgo(t.last_fetched_at)}` : t.status_detail ?? "Waiting for first check"}</span>
-                    <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-700 underline">Open</a>
+                    <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-text underline">Open</a>
                     <form action={untrackPageAction}><input type="hidden" name="pageId" value={t.id} /><input type="hidden" name="athleteId" value={a.id} /><button className="text-xs text-slate-400 hover:text-rose-600">Unlink</button></form>
                   </li>
                 ))}
@@ -282,7 +282,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                         {g.status === "changed" && <Badge tone="amber">Rescheduled</Badge>}
                         {g.status === "cancelled" && <Badge tone="red">Canceled</Badge>}
                         {!g.participation_confirmed && <Badge title="The team is scheduled; no source confirms this player will play">Playing not confirmed</Badge>}
-                        {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700 underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
+                        {g.source_url ? <a href={g.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-text underline">{g.source_name}</a> : <span className="text-xs text-slate-400">{g.source_name}</span>}
                       </div>
                     </div>
                   </li>
@@ -323,7 +323,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
               <ul className="space-y-2 text-sm">
                 {ev.film.map((f) => (
                   <li key={f.id} className="flex flex-wrap items-center justify-between gap-2">
-                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-700 hover:underline">▶ {f.title ?? "Watch film"}</a>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-text hover:underline">▶ {f.title ?? "Watch film"}</a>
                     <span className="text-xs text-slate-500">{f.source_name}{f.recorded_at ? ` · ${fmtDate(f.recorded_at)}` : ""}</span>
                   </li>
                 ))}
@@ -347,7 +347,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
                         {emailReady ? (
                           <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="returnTo" value={here} /><Button className="text-xs">Send now</Button></form>
                         ) : (
-                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-[3px] px-3 py-2 text-xs font-semibold text-brand-700 ring-1 ring-slate-200 hover:bg-slate-50">Open in my email</a>
+                          <a href={`mailto:${m.to_email ?? ""}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`} className="rounded-[3px] px-3 py-2 text-xs font-semibold text-brand-text ring-1 ring-slate-200 hover:bg-slate-50">Open in my email</a>
                         )}
                         <form action={sendMessageAction}><input type="hidden" name="messageId" value={m.id} /><input type="hidden" name="manual" value="1" /><input type="hidden" name="returnTo" value={here} /><Button variant="ghost" className="text-xs">Mark as sent</Button></form>
                       </div>
@@ -359,7 +359,7 @@ export default async function AthletePage({ params, searchParams }: { params: Pr
           )}
 
           <details className="border border-slate-900/10 bg-white">
-            <summary className="flex items-center justify-between px-5 py-4 text-sm font-semibold">Contact info, consent & records <span className="text-xs font-normal text-brand-700">Show</span></summary>
+            <summary className="flex items-center justify-between px-5 py-4 text-sm font-semibold">Contact info, consent & records <span className="text-xs font-normal text-brand-text">Show</span></summary>
             <div className="grid gap-6 border-t border-slate-100 p-5 md:grid-cols-2">
               <form action={updateContactAction} className="space-y-2 text-sm">
                 <input type="hidden" name="athleteId" value={a.id} />

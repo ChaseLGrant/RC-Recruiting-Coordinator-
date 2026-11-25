@@ -4,6 +4,7 @@ import { inviteInfo } from "@/lib/billing/schools";
 import { TRIAL_DAYS, billingEnforced } from "@/lib/billing/plan";
 import { acceptInviteAction } from "@/app/actions";
 import { Button, Flash, Input, Label } from "@/components/ui";
+import { brandingVars } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
   const org = info.org;
   const b = org.settings.branding;
   const team = b.teamName ?? org.name;
-  const vars = { "--team-primary": b.primary, "--team-ink": b.ink, "--team-accent": b.accent } as CSSProperties;
+  const vars = brandingVars(b) as CSSProperties;
   return (
     <div style={vars} className="team-scope min-h-screen bg-[var(--color-canvas)]">
       <header className="bg-[var(--team-ink)] px-4 pb-10 pt-[calc(env(safe-area-inset-top)+2.5rem)] text-white">
@@ -34,7 +35,7 @@ export default async function JoinPage({ params, searchParams }: { params: Promi
             // eslint-disable-next-line @next/next/no-img-element
             <img src={b.logoDataUrl} alt={`${team} logo`} className="h-16 w-auto max-w-[8rem] object-contain" />
           ) : (
-            <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-4xl font-extrabold">{team[0]}</span>
+            <span className="font-display grid h-16 w-16 place-items-center bg-[var(--team-primary)] text-on-brand text-4xl font-extrabold">{team[0]}</span>
           )}
           <div>
             <p className="eyebrow text-white/60">Recruiting Coordinator</p>

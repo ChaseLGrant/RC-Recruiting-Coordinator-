@@ -56,7 +56,7 @@ export default async function CampsPage({ searchParams }: { searchParams: Promis
                               <form action={campTargetStatusAction} className="flex gap-1">
                                 <input type="hidden" name="campId" value={camp.id} /><input type="hidden" name="athleteId" value={t.athlete_id} />
                                 <Select name="status" defaultValue={t.status}>{["targeted", "invite_approved", "registered", "declined", "attended"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</Select>
-                                <button className="text-xs text-brand-600">Save</button>
+                                <button className="text-xs text-brand-text">Save</button>
                               </form>
                             </td>
                           </tr>

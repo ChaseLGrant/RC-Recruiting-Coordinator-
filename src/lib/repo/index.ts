@@ -87,6 +87,9 @@ export interface Org {
   sport: string;
   campus: { label: string; lat: number; lng: number } | null;
   isDemo: boolean;
+  /** Branded staff sign-in at /p/<slug> (real programs only). */
+  slug: string | null;
+  createdAt: string;
   settings: OrgSettings;
 }
 
@@ -101,6 +104,8 @@ export function orgFromRow(r: Row): Org {
         ? { label: String(r.campus_label ?? "Campus"), lat: Number(r.campus_lat), lng: Number(r.campus_lng) }
         : null,
     isDemo: Boolean(Number(r.is_demo)),
+    slug: r.slug ? String(r.slug) : null,
+    createdAt: String(r.created_at ?? ""),
     settings: {
       compliance: { ...DEFAULT_COMPLIANCE, ...(s.compliance ?? {}) },
       minutesPerTask: { ...DEFAULT_MINUTES_PER_TASK, ...(s.minutesPerTask ?? {}) },

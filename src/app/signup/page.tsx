@@ -32,7 +32,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
         <div><Label>Password (8+ characters)</Label><Input name="password" type="password" minLength={8} required /></div>
         <Button className="w-full">Create account</Button>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">Already have an account? <Link className="text-brand-600 underline" href="/login">Sign in</Link></p>
+      <p className="mt-4 text-center text-sm text-slate-600">Already have an account? <Link className="text-brand-text underline" href="/login">Sign in</Link></p>
     </AuthShell>
   );
 }

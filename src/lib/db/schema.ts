@@ -423,4 +423,7 @@ export const COLUMN_MIGRATIONS: string[] = [
   "ALTER TABLE sessions ADD COLUMN acting_user_id TEXT",
   "ALTER TABLE athletes ADD COLUMN phone TEXT",
   "ALTER TABLE athletes ADD COLUMN x_handle TEXT",
+  // Branded staff sign-in page: /p/<slug>
+  "ALTER TABLE orgs ADD COLUMN slug TEXT",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_slug ON orgs(slug)",
 ];

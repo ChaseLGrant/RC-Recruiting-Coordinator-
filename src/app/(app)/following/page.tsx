@@ -66,7 +66,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
       </div>
 
       {rows.length === 0 ? (
-        <Empty>No players here yet. <Link href="/import" className="font-medium text-brand-700 underline">Import the list you already have</Link>, or <Link href="/" className="font-medium text-brand-700 underline">search for players</Link> and tap &ldquo;Add to My Players&rdquo;.</Empty>
+        <Empty>No players here yet. <Link href="/import" className="font-medium text-brand-text underline">Import the list you already have</Link>, or <Link href="/" className="font-medium text-brand-text underline">search for players</Link> and tap &ldquo;Add to My Players&rdquo;.</Empty>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {rows.map((f) => {
@@ -84,7 +84,7 @@ export default async function MyPlayersPage({ searchParams }: { searchParams: Pr
                     <select id={`bs-${a.id}`} name="boardStatus" defaultValue={f.board_status} className="rounded-[3px] border-0 bg-white px-2.5 py-1 text-xs ring-1 ring-slate-900/10">
                       {BOARD.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                     </select>
-                    <button className="rounded-[3px] px-2 py-1 font-medium text-brand-700 hover:bg-brand-50">Move</button>
+                    <button className="rounded-[3px] px-2 py-1 font-medium text-brand-text hover:bg-brand-50">Move</button>
                   </form>
                 </div>
               </div>

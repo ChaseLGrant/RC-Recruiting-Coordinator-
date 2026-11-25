@@ -35,7 +35,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
     <div>
       <Flash flash={sp.flash} error={sp.error} />
       <PageHeader title="Outreach" subtitle={`${prospects.length} schools · ${counts.tried + counts.explored} trying the demo · ${counts.signed_up + counts.using} signed up`} />
-      <p className="-mt-4 mb-6 text-sm"><Link href="/admin" className="text-brand-700 underline">← RC owner</Link></p>
+      <p className="-mt-4 mb-6 text-sm"><Link href="/admin" className="text-brand-text underline">← RC owner</Link></p>
 
       <div className="mb-6 grid grid-cols-3 gap-px border border-slate-900/10 bg-slate-900/10 sm:grid-cols-6">
         {ORDER.map((s) => (
@@ -50,14 +50,14 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
         <form action={adminImportProspectsAction} className="flex flex-wrap items-end gap-3">
           <div><Input name="file" type="file" accept=".csv,text/csv" required /></div>
           <Button>Upload school list</Button>
-          <a href="/api/admin/prospects?template=1" className="text-sm text-brand-700 underline">Download the blank template</a>
+          <a href="/api/admin/prospects?template=1" className="text-sm text-brand-text underline">Download the blank template</a>
         </form>
         <p className="mt-3 text-xs text-slate-500">Columns: Program, Team, ZIP, Primary color, Secondary color, Accent color, Logo URL, Coach, Email, Conference. Only Program and ZIP are required. Colors are hex codes like #c8102e. Upload again any time to add schools or fix colors; existing links keep working.</p>
       </Card>
 
       <Card title="2 · Send the links" className="mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <a href="/api/admin/prospects" download className="inline-flex min-h-10 items-center rounded-[3px] bg-brand-600 px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-brand-700">Download mail-merge file</a>
+          <a href="/api/admin/prospects" download className="inline-flex min-h-10 items-center rounded-[3px] bg-brand-600 px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em] text-on-brand hover:bg-brand-700">Download mail-merge file</a>
           <span className="text-sm text-slate-600">One row per school with the coach&apos;s first name, email and their personal preview link. Works with Gmail mail merge, Mailchimp, Instantly, YAMM and others.</span>
         </div>
       </Card>
@@ -95,7 +95,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
-                    <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="font-bold uppercase tracking-wider text-brand-700 hover:underline">Preview</a>
+                    <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="font-bold uppercase tracking-wider text-brand-text hover:underline">Preview</a>
                     <input readOnly value={`${base}/p/${p.slug}`} className="w-48 rounded-[3px] border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px]" aria-label={`Preview link for ${p.programName}`} />
                     {!p.orgId && <form action={adminDeleteProspectAction}><input type="hidden" name="id" value={p.id} /><button className="text-slate-400 hover:text-red-600">Remove</button></form>}
                   </div>

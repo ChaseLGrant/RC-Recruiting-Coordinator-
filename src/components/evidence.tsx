@@ -47,7 +47,7 @@ export function MetricValue({ m, compact }: { m: ResolvedMetric | undefined; com
                 <span className={freshnessLabel(o.checkedAt) === "stale" ? "text-rose-600" : ""}>({freshnessLabel(o.checkedAt)})</span>
               </div>
               {o.sourceUrl ? (
-                <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">Open original source ↗</a>
+                <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-brand-text underline">Open original source ↗</a>
               ) : (
                 <div className="text-slate-400">No public link provided by this source</div>
               )}

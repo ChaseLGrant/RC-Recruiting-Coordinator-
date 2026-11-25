@@ -117,9 +117,9 @@ async function createPostgres(url: string): Promise<Db> {
   return make(pool as unknown as Client, false);
 }
 
-export async function createDb(opts?: { url?: string; sqlitePath?: string }): Promise<Db> {
+export async function createDb(opts?: { url?: string; sqlitePath?: string; sqliteOnly?: boolean }): Promise<Db> {
   // DATABASE_URL, or POSTGRES_URL as set by Vercel's Supabase/Neon integrations.
-  const url = opts?.url ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+  const url = opts?.sqliteOnly ? undefined : (opts?.url ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL);
   const db = url
     ? await createPostgres(url)
     : await createSqlite(opts?.sqlitePath ?? process.env.RC_SQLITE_PATH ?? "./data/rc.db");

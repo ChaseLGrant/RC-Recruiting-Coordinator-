@@ -43,8 +43,8 @@ export function Button({
   name?: string; value?: string; className?: string; formAction?: (fd: FormData) => void | Promise<void>; disabled?: boolean; title?: string;
 }) {
   const styles = {
-    primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700",
-    success: "bg-brand-600 text-white shadow-sm hover:bg-brand-700",
+    primary: "bg-brand-600 text-on-brand shadow-sm hover:bg-brand-700",
+    success: "bg-brand-600 text-on-brand shadow-sm hover:bg-brand-700",
     secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50",
     ghost: "text-slate-600 hover:bg-slate-100",
     danger: "bg-white text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50",
@@ -60,7 +60,7 @@ export function Button({
 export function LinkButton({ href, children, variant = "secondary", className }: { href: string; children: ReactNode; variant?: "primary" | "secondary"; className?: string }) {
   return (
     <Link href={href} className={cx("inline-flex min-h-10 items-center gap-1.5 rounded-[3px] px-4 py-2 text-[13px] font-bold uppercase tracking-[0.06em]",
-      variant === "primary" ? "bg-brand-600 text-white hover:bg-brand-700" : "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50", className)}>
+      variant === "primary" ? "bg-brand-600 text-on-brand hover:bg-brand-700" : "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50", className)}>
       {children}
     </Link>
   );
