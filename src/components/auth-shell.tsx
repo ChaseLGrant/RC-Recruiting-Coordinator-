@@ -46,7 +46,7 @@ export function AuthShell({ children, program, aside }: { children: ReactNode; p
       <div className="flex min-h-screen flex-col px-5 py-8 sm:px-10">
         <div className="flex items-center justify-between lg:justify-end">
           <span className="lg:hidden"><Wordmark /></span>
-          <Link href="/" className="text-[13px] text-[var(--site-muted)] hover:text-white">← rc home</Link>
+          <Link href="/" className="text-[13px] text-[var(--site-muted)] hover:text-white">← Home</Link>
         </div>
         <div className="grid flex-1 place-items-center py-10">
           <div className="rise w-full max-w-[420px]">{children}</div>
