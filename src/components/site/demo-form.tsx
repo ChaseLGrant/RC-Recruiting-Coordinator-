@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { useActionState, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useFormStatus } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { createSchoolDemoAction, type DemoFormState } from "@/app/actions";
 import { COLOR_PRESETS, deriveTheme, normalizeHex, themeVars } from "@/lib/theme";
 
@@ -189,8 +189,9 @@ function Submit({ team }: { team: string }) {
 
 function BuildingOverlay({ team, vars, logo }: { team: string; vars: CSSProperties; logo: string | null }) {
   const { pending } = useFormStatus();
-  if (!pending) return null;
-  return (
+  if (!pending || typeof document === "undefined") return null;
+  // Portaled to <body>: the page's entrance animation would otherwise trap a fixed overlay inside the form.
+  return createPortal(
     <div style={vars} role="status" aria-live="polite" className="fixed inset-0 z-50 grid place-items-center bg-[var(--team-ink)] px-6 text-white">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3">
@@ -203,6 +204,7 @@ function BuildingOverlay({ team, vars, logo }: { team: string; vars: CSSProperti
           {STEPS.map((s, i) => <li key={s} className="rise" style={{ animationDelay: `${i * 0.6}s` }}>{s}…</li>)}
         </ul>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

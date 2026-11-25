@@ -22,10 +22,10 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 and choose **Create an account**. You have two options:
+Open http://localhost:3000. You'll see the public landing page. From there:
 
-- **My program** starts empty. Add data you're authorized to use through **Settings → Data sources → Import a CSV**. Try `samples/athletes-example.csv` first.
-- **Demo workspace** loads about 140 **fictional** athletes from two demo sources and runs a real mission right away. A purple banner and a `DEMO` tag on every athlete mark the data as fictional. Demo data cannot be loaded into a real program.
+- **See it in your colors** (`/demo`) builds a private demo in any school's colors with about 140 **fictional** athletes near its campus and drops you on the board. A `DEMO` bar on every screen and a `DEMO` tag on every athlete mark the data as fictional. Demo data cannot be loaded into a real program.
+- **Create your account** (`/signup`) starts a real program, empty. Add data you're authorized to use through **Import your list** or **Settings → Data sources**. Try `samples/athletes-example.csv` first.
 
 Run the background worker in a second terminal. It runs recurring missions when they're due:
 
@@ -106,6 +106,23 @@ Also:
 - Try-it demos don't run scheduled jobs, never call paid search or AI, and are deleted after 14 days (`RC_GUEST_DEMO_DAYS`). Their open and view counts are kept.
 - Limits: `RC_GUEST_DEMOS_PER_HOUR` (default 60) and `RC_PREVIEWS_PER_SCHOOL_PER_DAY` (default 25).
 - **Before a mass send:** cold email in the US needs your business mailing address and an unsubscribe line (CAN-SPAM). Send in batches of 30 to 50 a day from a warmed-up domain, not your main one, or schools' spam filters will block you. Use school logos only in each school's own private preview, never in public ads.
+
+## Public site, school-branded demos & program branding
+
+- **Landing page** (`/` for signed-out visitors, served from `/welcome` by `src/middleware.ts`). Signed-in staff go straight to their board. Product images live in `public/product/` and are real screenshots of RC (fictional demo programs).
+- **See RC in your colors** (`/demo`, also `/demo?school=Coastal%20State`). A coach enters the school name, picks colors (12 presets or exact hex), optionally a campus ZIP / "City, ST" and a logo upload (PNG/JPG/WebP/SVG, 500 KB max). RC builds a private DEMO program with fictional players near that campus, applies the colors and logo everywhere, signs them in and lands them on the dashboard. RC never fetches or embeds a school's logo by itself; only an upload is used.
+  - **Speed:** a demo is ~13,000 rows. On hosted Postgres that used to be ~13,000 round trips (≈40 s). Demos are now built in a private in-memory SQLite database and copied to Postgres in a few multi-row INSERTs in one transaction (`src/lib/demo/fast-build.ts`), about 1–2 s. If the in-memory database can't start, RC falls back to building in place.
+  - Demos are labeled on every screen, never run scheduled jobs or paid AI/search, and are deleted after 14 days by the existing cron (`RC_GUEST_DEMO_DAYS`, `purgeOldGuestDemos`). Limit: `RC_GUEST_DEMOS_PER_HOUR` (default 60).
+- **Theme tokens** (`src/lib/theme.ts`). From a program's primary / secondary (and optional header) color RC derives every UI color as CSS variables (`--team-primary`, `--team-on-primary`, `--team-ink`, `--team-accent-on-ink`, `--team-mark`, …) and picks readable text for each surface by WCAG contrast. Light colors (gold, white, columbia blue) and near-black primaries both stay readable. Set in Settings → Branding.
+- **Branded staff sign-in** at `/p/<slug>` (and `/login?school=<slug>`). Every real program gets one from its team name the first time Settings is opened; the head coach can rename it in Settings → Branding. Demos never get one. Outreach preview links also live under `/p/`; program slugs never take one of those.
+- **Staff:** head coaches add staff (with role and temporary password) or set one shared staff login with tap-your-name profiles, both in Settings → Staff.
+
+### Custom subdomains later (school.yourdomain.com)
+
+Not set up (no domain purchased). When there is a domain:
+1. In Vercel → Project → Settings → Domains add the apex (e.g. `rcrecruit.com`) and a wildcard `*.rcrecruit.com`. Wildcards require the domain's nameservers to point at Vercel (`ns1.vercel-dns.com`, `ns2.vercel-dns.com`).
+2. In `src/middleware.ts`, read the `host` header; for `<slug>.rcrecruit.com` rewrite `/` and `/login` to `/p/<slug>` (signed-out) and pass everything else through. Session cookies are per-host, so each school's subdomain keeps its own sign-in.
+3. Set `RC_PUBLIC_URL` to the apex and update the GitHub `RC_URL` secret.
 
 ## Subscriptions, free trial & school invites
 

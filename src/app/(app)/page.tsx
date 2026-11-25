@@ -11,6 +11,7 @@ import { SearchBox } from "@/components/search-box";
 import { EXAMPLES } from "@/lib/search-examples";
 import { Empty, Flash, timeAgo } from "@/components/ui";
 import { encodeCriteria } from "@/lib/criteria-form";
+import { ScrollTop } from "@/components/scroll-top";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ flash?: string; error?: string; welcome?: string }> }) {
   const { ctx, user, org } = await requireSession();
@@ -38,6 +39,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <div>
       <Flash flash={sp.flash} error={sp.error} />
+      {sp.welcome === "demo" && <ScrollTop />}
       {sp.welcome === "demo" && org.isDemo && (
         <div className="mb-6 grid overflow-hidden border border-slate-900/10 bg-white md:grid-cols-[1fr_2fr]">
           <div className="bg-[var(--team-ink)] p-5 text-white sm:p-6">

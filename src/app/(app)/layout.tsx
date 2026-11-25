@@ -55,15 +55,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       )}
       <header className="sticky top-0 z-30 border-b-4 border-[var(--team-primary-on-ink)] bg-[var(--team-ink)] pt-[env(safe-area-inset-top)] text-white">
         <div className="mx-auto flex h-[64px] max-w-6xl items-center gap-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:h-[72px] sm:px-6">
-          <Link href="/" className="flex items-center gap-3" aria-label={`${team} home`}>
+          <Link href="/" className="flex min-w-0 items-center gap-3" aria-label={`${team} home`}>
             {b.logoDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoDataUrl} alt={`${team} logo`} className="h-11 w-auto max-w-[5rem] object-contain" />
             ) : (
               <span className="font-display grid h-11 w-11 place-items-center bg-[var(--team-mark)] text-[var(--team-on-mark)] text-xl font-extrabold">{team.slice(0, 1)}</span>
             )}
-            <span className="leading-none">
-              <span className="font-display block text-[22px] font-extrabold uppercase tracking-wide">{team}</span>
+            <span className="min-w-0 leading-none">
+              <span className="font-display block truncate text-[19px] font-extrabold uppercase tracking-wide sm:text-[22px]">{team}</span>
               <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">Recruiting Coordinator</span>
             </span>
           </Link>
