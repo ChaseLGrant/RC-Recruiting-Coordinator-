@@ -51,16 +51,16 @@ export default async function Landing() {
           </div>
           <p className="rise rise-3 mt-4 text-[13px] text-[var(--site-dim)] lg:text-right">Your school&apos;s colors and logo, sample players near your campus. About 30 seconds, no sign-up.</p>
 
-          {/* Product, not stock art */}
-          <div className="rise rise-4 mx-auto mt-12 w-[82%] max-w-[340px] md:hidden">
+          {/* Product, not stock art. Not animated: an animated layer can fail to paint in screenshots/previews and leave a blank gap. */}
+          <div className="mx-auto mt-12 w-[82%] max-w-[340px] md:hidden">
             <div className="frame rounded-[22px]">
               <img src="/product/mobile-board.webp" alt="RC on a phone: the staff's player board" width={390} height={844} className="block h-auto w-full" />
             </div>
           </div>
-          <div className="rise rise-4 relative mt-14 hidden sm:mt-20 md:block">
+          <div className="relative mt-14 hidden sm:mt-20 md:block">
             <div className="frame">
               <div className="frame-bar"><i /><i /><i /><span className="ml-3 truncate text-[11px] text-[var(--site-dim)]">Home · Daily brief</span></div>
-              <img src="/product/dashboard.webp" alt="RC home screen: search, new players, approvals waiting, games this week" width={1440} height={900} className="block h-auto w-full" />
+              <img src="/product/dashboard.webp" fetchPriority="high" decoding="async" alt="RC home screen: search, new players, approvals waiting, games this week" width={1440} height={900} className="block h-auto w-full" />
             </div>
             <div className="frame absolute -bottom-10 right-3 hidden w-[24%] max-w-[260px] rounded-[18px] md:block">
               <img src="/product/mobile-board.webp" alt="RC on a phone: the staff's player board" width={390} height={844} className="block h-auto w-full" />
